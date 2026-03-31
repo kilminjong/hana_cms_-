@@ -426,21 +426,30 @@ def update_fast(cno, um):
 # 사용자 관리
 # ══════════════════════════════════════════════════
 
-@st.cache_data(ttl=600, show_spinner=False)
 def get_users():
+    """구글시트에서 사용자 목록 조회 + 세션 캐시 병합"""
+    # 세션에 임시 저장된 신규 가입자 먼저 가져오기
+    cached = {}
+    try:
+        cached = st.session_state.get('cached_users', {})
+    except:
+        pass
     try:
         cl = get_client()
         if not cl:
-            return {}
+            return cached
         r = cl.open_by_url(GOOGLE_SHEET_URL).worksheet(SHEET_USERS).get_all_records()
-        return {
+        sheet_users = {
             str(x['username']): {
                 "password": str(x['password']),
                 "role": str(x.get('role', 'user')).strip() or 'user'
             } for x in r
         }
+        # 구글시트 데이터 + 세션 캐시 병합 (구글시트 우선)
+        merged = {**cached, **sheet_users}
+        return merged
     except:
-        return {}
+        return cached
 
 
 # ══════════════════════════════════════════════════

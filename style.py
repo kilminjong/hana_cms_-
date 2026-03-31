@@ -137,11 +137,32 @@ div.stButton > button[kind="secondary"]:hover {
   background: #ffffff !important;
   color: #1a1a2e !important;
   -webkit-text-fill-color: #1a1a2e !important;
+  height: 44px !important;
+  box-sizing: border-box !important;
 }
-.stTextInput > div > div > input:focus {
+/* 비밀번호 눈 아이콘 포함 wrapper */
+.stTextInput > div > div {
+  background: #ffffff !important;
+  border: 1.5px solid #c1c9d2 !important;
+  border-radius: var(--radius-sm) !important;
+  overflow: hidden !important;
+}
+.stTextInput > div > div > input {
+  border: none !important;
+  box-shadow: none !important;
+}
+.stTextInput > div > div:focus-within {
   border-color: #008485 !important;
   box-shadow: 0 0 0 3px rgba(0,132,133,0.1) !important;
 }
+/* 눈 아이콘 버튼 */
+.stTextInput > div > div > button {
+  background: transparent !important;
+  border: none !important;
+  color: #8c95a6 !important;
+  padding: 0 10px !important;
+}
+
 .stTextInput > div > div > input::placeholder {
   color: #8c95a6 !important;
   -webkit-text-fill-color: #8c95a6 !important;

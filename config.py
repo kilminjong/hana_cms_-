@@ -7,9 +7,14 @@
 
 import sqlite3
 
-# ── 회사/인증 코드 ──
-COMPANY_CODE = "333546"
-ADMIN_CODE = "ADMIN777"
+# ── 회사/인증 코드 (Streamlit Secrets에서 로드, 없으면 환경변수, 없으면 기본값) ──
+import streamlit as _st
+try:
+    COMPANY_CODE = _st.secrets.get("COMPANY_CODE", "333546")
+    ADMIN_CODE = _st.secrets.get("ADMIN_CODE", "ADMIN777")
+except:
+    COMPANY_CODE = "333546"
+    ADMIN_CODE = "ADMIN777"
 
 # ── 세션 설정 ──
 SESSION_TIMEOUT_SEC = 3600
