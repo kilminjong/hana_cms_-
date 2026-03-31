@@ -28,6 +28,21 @@ CSS_GLOBAL = """<style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
 html, body, [class*="css"] { font-family: var(--font-main) !important; }
+
+/* ── 라이트 모드 강제 적용 ── */
+.stApp { background-color: #f0f2f5 !important; color: #1a1a2e !important; }
+.main .block-container { background-color: #f0f2f5 !important; }
+
+/* 다크모드 override */
+div[data-baseweb="select"] { background-color: #ffffff !important; color: #1a1a2e !important; }
+div[data-baseweb="select"] * { color: #1a1a2e !important; }
+div[data-baseweb="popover"] { background-color: #ffffff !important; }
+div[data-baseweb="popover"] * { color: #1a1a2e !important; }
+[data-baseweb="tab-panel"] { background-color: #ffffff !important; }
+[data-testid="stExpander"] { background-color: #ffffff !important; border: 1px solid #e2e6ea !important; border-radius: 10px !important; }
+[data-testid="stExpander"] * { color: #1a1a2e !important; }
+[data-testid="collapsedControl"] { display: none !important; }
+
 .stApp { background-color: var(--bg-app); }
 #MainMenu { visibility: hidden !important; }
 .stDeployButton { display: none !important; }

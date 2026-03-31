@@ -17,15 +17,15 @@ from auth import (
 from data import get_current_df, load_data_from_sheet, analyze_alerts, get_users, log_action
 
 # ── 각 메뉴 페이지 ──
-from pages import dashboard as page_dashboard
-from pages import customer as page_customer
-from pages import alerts as page_alerts
-from pages import my_stats as page_my_stats
-from pages import bms as page_bms
-from pages import report as page_report
-from pages import log_analysis as page_log_analysis
-from pages import system_log as page_system_log
-from pages import user_mgmt as page_user_mgmt
+from modules import dashboard as page_dashboard
+from modules import customer as page_customer
+from modules import alerts as page_alerts
+from modules import my_stats as page_my_stats
+from modules import bms as page_bms
+from modules import report as page_report
+from modules import log_analysis as page_log_analysis
+from modules import system_log as page_system_log
+from modules import user_mgmt as page_user_mgmt
 
 # ══════════════════════════════════════════════════
 # 페이지 설정
@@ -34,7 +34,7 @@ st.set_page_config(
     page_title="고객 관리 시스템",
     page_icon="📋",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
     menu_items={}
 )
 st.markdown("""<style>
@@ -48,6 +48,7 @@ header [data-testid="stToolbarActions"] > div:last-child {display: none !importa
 footer {visibility: hidden !important;}
 [data-testid="stSidebarNav"] {display: none !important;}
 section[data-testid="stSidebarNav"] {display: none !important;}
+[data-testid="collapsedControl"] {display: none !important;}
 </style>""", unsafe_allow_html=True)
 
 inject_all_css()
@@ -57,6 +58,19 @@ if 'login_status' not in st.session_state:
     st.session_state['login_status'] = False
 if 'current_user' not in st.session_state:
     st.session_state['current_user'] = ""
+
+# 로그인 상태에 따라 사이드바 제어
+if not st.session_state['login_status']:
+    st.markdown("""<style>
+    [data-testid="stSidebar"] {display: none !important;}
+    [data-testid="collapsedControl"] {display: none !important;}
+    .main .block-container {max-width: 100% !important; padding: 0 !important;}
+    </style>""", unsafe_allow_html=True)
+else:
+    st.markdown("""<style>
+    [data-testid="stSidebar"] {display: flex !important;}
+    [data-testid="collapsedControl"] {display: none !important;}
+    </style>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════
 # 로그인 화면
