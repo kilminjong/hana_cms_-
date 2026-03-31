@@ -55,9 +55,9 @@ def render():
                 with cs:
                     s = st.text_input("통합 검색", placeholder="고객명, 번호 등...", label_visibility="collapsed")
                 with cf1:
-                    sel_m = st.multiselect("담당자", ["전준수","임인지","이수현","길민종","맹국성","이성환","기타"], label_visibility="collapsed")
+                    sel_m = st.multiselect("담당자", ["전준수","임인지","이수현","길민종","맹국성","이성환","기타"], label_visibility="collapsed", placeholder="담당자 선택")
                 with cf2:
-                    sel_t = st.multiselect("구축형", ["기본형","연계형","기타"], label_visibility="collapsed")
+                    sel_t = st.multiselect("구축형", ["기본형","연계형","기타"], label_visibility="collapsed", placeholder="구축형 선택")
 
             if s:
                 df = df[df.astype(str).apply(lambda x: x.str.contains(s, regex=False)).any(axis=1)]
@@ -69,8 +69,13 @@ def render():
             vc = [c for c in ["고객명","고객번호","사업자번호","구축형","담당자","개설구분","연계상태","관리구분","개설이행일"] if c in df.columns]
             badge_cols = [c for c in ["개설구분","연계상태","관리구분"] if c in vc]
 
+            # 1번: 빈 값 '-' 로 표시
+            df_display = df[vc].copy()
+            for col in badge_cols:
+                df_display[col] = df_display[col].replace('', '미설정').fillna('미설정')
+
             # ── 1번: style.map으로 배지 색상 적용 ──
-            styled = df[vc].style.map(color_cell, subset=badge_cols)
+            styled = df_display.style.map(color_cell, subset=badge_cols)
 
             evt = st.dataframe(
                 styled,
