@@ -260,6 +260,65 @@ else:
                 st.rerun()
 
         st.markdown("---")
+
+        # ── 배경 선택 ──
+        with st.expander("🎨 배경 선택"):
+            uid = st.session_state.get('current_user', 'default')
+            bg_key = f"bg_{uid}"
+            current_bg = st.session_state.get(bg_key, "#f0f2f5")
+
+            st.markdown('<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:8px;">색상 선택</div>', unsafe_allow_html=True)
+            preset_colors = [
+                ("#f0f2f5","기본 회색"), ("#ffffff","순백색"),
+                ("#e8f4f8","하늘색"), ("#e8f8f0","민트"),
+                ("#f8f0e8","크림"), ("#f0e8f8","라벤더"),
+                ("#1a1a2e","다크"), ("#0f2027","딥다크"),
+            ]
+            cols_bg = st.columns(4)
+            for i, (color, name) in enumerate(preset_colors):
+                with cols_bg[i % 4]:
+                    border = "3px solid #5ef0f1" if current_bg == color else "2px solid rgba(255,255,255,0.2)"
+                    if st.button("", key=f"bg_preset_{i}", help=name,
+                                 use_container_width=True):
+                        st.session_state[bg_key] = color
+                        st.rerun()
+                    st.markdown(f'<div style="width:100%;height:24px;background:{color};border-radius:4px;border:{border};margin-top:-38px;pointer-events:none;"></div>', unsafe_allow_html=True)
+
+            st.markdown('<div style="font-size:11px;color:rgba(255,255,255,0.5);margin:8px 0 4px;">직접 색상 선택</div>', unsafe_allow_html=True)
+            custom_color = st.color_picker("색상", value=current_bg if current_bg.startswith("#") and len(current_bg)==7 else "#f0f2f5", label_visibility="collapsed")
+            if st.button("이 색상 적용", use_container_width=True, key="apply_custom_color"):
+                st.session_state[bg_key] = custom_color
+                st.rerun()
+
+            st.markdown('<div style="font-size:11px;color:rgba(255,255,255,0.5);margin:8px 0 4px;">이미지 업로드</div>', unsafe_allow_html=True)
+            bg_img = st.file_uploader("배경 이미지", type=["png","jpg","jpeg","webp"], label_visibility="collapsed")
+            if bg_img:
+                import base64
+                img_data = base64.b64encode(bg_img.read()).decode()
+                ext = bg_img.name.split(".")[-1]
+                img_url = f"data:image/{ext};base64,{img_data}"
+                st.session_state[bg_key] = img_url
+                st.rerun()
+
+            if current_bg != "#f0f2f5":
+                if st.button("기본값으로 초기화", use_container_width=True, key="reset_bg"):
+                    st.session_state[bg_key] = "#f0f2f5"
+                    st.rerun()
+
+        # 배경 CSS 적용
+        bg_val = st.session_state.get(f"bg_{st.session_state.get('current_user','default')}", "#f0f2f5")
+        if bg_val.startswith("data:image"):
+            bg_css = f"background-image:url('{bg_val}') !important;background-size:cover !important;background-attachment:fixed !important;background-position:center !important;"
+        else:
+            bg_css = f"background-color:{bg_val} !important;"
+        st.markdown(f"""<style>
+html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], .main {{
+    {bg_css}
+}}
+.block-container {{ background:transparent !important; }}
+</style>""", unsafe_allow_html=True)
+
+        st.markdown("---")
         if st.button("데이터 최신화", use_container_width=True):
             st.cache_data.clear()
             for k in ['local_df', 'all_memos', 'all_timeline']:
