@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-고객 관리 시스템 - 메인 진입점
-각 메뉴의 코드는 modules/ 폴더 안에 있습니다.
-"""
 import streamlit as st
 import datetime
 import time
@@ -16,7 +12,6 @@ from auth import (
 )
 from data import get_current_df, load_data_from_sheet, analyze_alerts, get_users, log_action
 
-# ── 각 메뉴 페이지 ──
 from pages import dashboard as page_dashboard
 from pages import customer as page_customer
 from pages import alerts as page_alerts
@@ -27,29 +22,31 @@ from pages import log_analysis as page_log_analysis
 from pages import system_log as page_system_log
 from pages import user_mgmt as page_user_mgmt
 
-# ══════════════════════════════════════════════════
-# 페이지 설정
-# ══════════════════════════════════════════════════
 st.set_page_config(
     page_title="고객 관리 시스템",
     page_icon="📋",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
     menu_items={}
 )
-st.markdown("""<style>
+
+# 다크모드 강제 비활성화 + 불필요한 UI 숨김
+st.markdown("""
+<style>
+html, body, .stApp {
+    color-scheme: light !important;
+    background-color: #f0f2f5 !important;
+}
 #MainMenu {visibility: hidden !important;}
 .stDeployButton {display: none !important;}
 [data-testid="manage-app-button"] {display: none !important;}
-button[kind="header"] {display: none !important;}
 [data-testid="stStatusWidget"] {display: none !important;}
-.stAppDeployButton {display: none !important;}
-header [data-testid="stToolbarActions"] > div:last-child {display: none !important;}
-footer {visibility: hidden !important;}
 [data-testid="stSidebarNav"] {display: none !important;}
 section[data-testid="stSidebarNav"] {display: none !important;}
-[data-testid="collapsedControl"] {display: none !important;}
-</style>""", unsafe_allow_html=True)
+footer {visibility: hidden !important;}
+header {background: transparent !important;}
+</style>
+""", unsafe_allow_html=True)
 
 inject_all_css()
 init_session()
@@ -58,19 +55,6 @@ if 'login_status' not in st.session_state:
     st.session_state['login_status'] = False
 if 'current_user' not in st.session_state:
     st.session_state['current_user'] = ""
-
-# 로그인 상태에 따라 사이드바 제어
-if not st.session_state['login_status']:
-    st.markdown("""<style>
-    [data-testid="stSidebar"] {display: none !important;}
-    [data-testid="collapsedControl"] {display: none !important;}
-    .main .block-container {max-width: 100% !important; padding: 0 !important;}
-    </style>""", unsafe_allow_html=True)
-else:
-    st.markdown("""<style>
-    [data-testid="stSidebar"] {display: flex !important;}
-    [data-testid="collapsedControl"] {display: none !important;}
-    </style>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════
 # 로그인 화면
@@ -89,7 +73,7 @@ if not st.session_state['login_status']:
                 id_ = st.text_input("아이디", placeholder="아이디를 입력하세요")
                 pw_ = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요")
                 if st.form_submit_button("로그인", type="primary", use_container_width=True):
-                    with st.spinner("🔐 로그인 중..."):
+                    with st.spinner("로그인 중..."):
                         db = get_users()
                         if str(id_) in db and check_password(pw_, db[str(id_)]["password"]):
                             login_success(str(id_), db[str(id_)].get("role", "user"))
@@ -98,7 +82,8 @@ if not st.session_state['login_status']:
                             st.error("아이디 또는 비밀번호가 일치하지 않습니다.")
             st.markdown('<div class="login-footer" style="text-align:center;margin-top:20px;font-size:13px;color:#8c95a6;">계정이 없으신가요?</div>', unsafe_allow_html=True)
             if st.button("회원가입", use_container_width=True):
-                st.session_state['auth_mode'] = 'join'; st.rerun()
+                st.session_state['auth_mode'] = 'join'
+                st.rerun()
         else:
             with st.form("join_form"):
                 st.markdown('<div style="text-align:center;margin-bottom:28px;"><div style="font-size:36px;margin-bottom:10px;">📋</div><div style="font-size:24px;font-weight:800;color:#008485;">회원가입</div><div style="font-size:13px;color:#8c95a6;margin-top:6px;">관리자에게 인증코드를 발급받은 후 가입하세요</div></div>', unsafe_allow_html=True)
@@ -108,16 +93,25 @@ if not st.session_state['login_status']:
                 if st.form_submit_button("가입하기", type="primary", use_container_width=True):
                     if n1 and n2:
                         if n3 == ADMIN_CODE:
-                            add_user(n1, hash_password(n2), "admin"); st.success("관리자 가입 완료!"); time.sleep(0.8); st.session_state['auth_mode'] = 'login'; st.rerun()
+                            add_user(n1, hash_password(n2), "admin")
+                            st.success("관리자 가입 완료!")
+                            time.sleep(0.8)
+                            st.session_state['auth_mode'] = 'login'
+                            st.rerun()
                         elif n3 == COMPANY_CODE:
-                            add_user(n1, hash_password(n2), "user"); st.success("가입 완료!"); time.sleep(0.8); st.session_state['auth_mode'] = 'login'; st.rerun()
+                            add_user(n1, hash_password(n2), "user")
+                            st.success("가입 완료!")
+                            time.sleep(0.8)
+                            st.session_state['auth_mode'] = 'login'
+                            st.rerun()
                         else:
                             st.error("인증코드가 올바르지 않습니다.")
                     else:
                         st.error("아이디와 비밀번호를 입력해 주세요.")
             st.markdown('<div style="text-align:center;margin-top:20px;font-size:13px;color:#8c95a6;">이미 계정이 있으신가요?</div>', unsafe_allow_html=True)
             if st.button("로그인으로 돌아가기", use_container_width=True):
-                st.session_state['auth_mode'] = 'login'; st.rerun()
+                st.session_state['auth_mode'] = 'login'
+                st.rerun()
     page_wrapper_close()
 
 # ══════════════════════════════════════════════════
@@ -140,11 +134,10 @@ else:
     def set_menu(m):
         st.session_state['menu_selection'] = m
 
-    # ── 사이드바 ──
     with st.sidebar:
         role = get_user_role()
         uid = st.session_state.get('current_user', '')
-        rl = "🔑 관리자" if role == "admin" else "👤 사용자"
+        rl = "관리자" if role == "admin" else "사용자"
         rc = "#5ef0f1" if role == "admin" else "#e2e8f0"
         rb = "rgba(0,132,133,0.25)" if role == "admin" else "rgba(255,255,255,0.08)"
         rbd = "rgba(0,132,133,0.4)" if role == "admin" else "rgba(255,255,255,0.1)"
@@ -171,19 +164,19 @@ else:
             if label == "알림센터" and at > 0:
                 bl = f"{icon}  {label} ({at})"
             if st.button(bl, use_container_width=True, type="primary" if st.session_state['menu_selection'] == label else "secondary"):
-                set_menu(label); st.rerun()
+                set_menu(label)
+                st.rerun()
 
         st.markdown("---")
-        if st.button("🔄  데이터 최신화", use_container_width=True):
+        if st.button("데이터 최신화", use_container_width=True):
             st.cache_data.clear()
             for k in ['local_df', 'all_memos', 'all_timeline']:
                 if k in st.session_state:
                     del st.session_state[k]
             st.rerun()
-        if st.button("🚪  로그아웃", use_container_width=True):
+        if st.button("로그아웃", use_container_width=True):
             logout_user()
 
-    # ── 메뉴 라우팅 ──
     menu = st.session_state['menu_selection']
 
     if menu == "메인화면":
