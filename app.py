@@ -17,15 +17,15 @@ from auth import (
 from data import get_current_df, load_data_from_sheet, analyze_alerts, get_users, log_action
 
 # ── 각 메뉴 페이지 ──
-from modules import dashboard as page_dashboard
-from modules import customer as page_customer
-from modules import alerts as page_alerts
-from modules import my_stats as page_my_stats
-from modules import bms as page_bms
-from modules import report as page_report
-from modules import log_analysis as page_log_analysis
-from modules import system_log as page_system_log
-from modules import user_mgmt as page_user_mgmt
+from pages import dashboard as page_dashboard
+from pages import customer as page_customer
+from pages import alerts as page_alerts
+from pages import my_stats as page_my_stats
+from pages import bms as page_bms
+from pages import report as page_report
+from pages import log_analysis as page_log_analysis
+from pages import system_log as page_system_log
+from pages import user_mgmt as page_user_mgmt
 
 # ══════════════════════════════════════════════════
 # 페이지 설정
