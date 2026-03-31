@@ -30,21 +30,32 @@ st.set_page_config(
     menu_items={}
 )
 
-# 다크모드 강제 비활성화 + 불필요한 UI 숨김
+# 공통 숨김 CSS
 st.markdown("""
 <style>
-html, body, .stApp {
-    color-scheme: light !important;
-    background-color: #f0f2f5 !important;
+html, body, .stApp, [data-testid="stAppViewContainer"],
+[data-testid="stMain"], .main, .block-container {
+  background-color: #f0f2f5 !important;
+  color: #1a1a2e !important;
+  color-scheme: light !important;
 }
-#MainMenu {visibility: hidden !important;}
-.stDeployButton {display: none !important;}
-[data-testid="manage-app-button"] {display: none !important;}
-[data-testid="stStatusWidget"] {display: none !important;}
-[data-testid="stSidebarNav"] {display: none !important;}
-section[data-testid="stSidebarNav"] {display: none !important;}
-footer {visibility: hidden !important;}
-header {background: transparent !important;}
+#MainMenu { visibility: hidden !important; }
+.stDeployButton { display: none !important; }
+[data-testid="manage-app-button"] { display: none !important; }
+[data-testid="stSidebarNav"] { display: none !important; }
+section[data-testid="stSidebarNav"] { display: none !important; }
+footer { visibility: hidden !important; }
+header { background: transparent !important; }
+
+/* 상단 여백 제거 */
+.block-container {
+  padding-top: 1.5rem !important;
+  padding-bottom: 1rem !important;
+}
+[data-testid="stHeader"] {
+  height: 0 !important;
+  min-height: 0 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -60,16 +71,49 @@ if 'current_user' not in st.session_state:
 # 로그인 화면
 # ══════════════════════════════════════════════════
 if not st.session_state['login_status']:
+    # 로그인 화면에서 사이드바 완전 숨김
+    st.markdown("""
+    <style>
+    [data-testid="stSidebar"] { display: none !important; }
+    [data-testid="collapsedControl"] { display: none !important; }
+    section[data-testid="stSidebar"] { display: none !important; }
+    .block-container {
+        max-width: 100% !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    /* 로그인 폼 정상화 */
+    [data-testid="stForm"] {
+        background: #ffffff !important;
+        border-radius: 14px !important;
+        padding: 40px 36px 32px !important;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.10) !important;
+        border: 1px solid #e2e6ea !important;
+    }
+    /* 비밀번호 필드 정상화 */
+    .stTextInput > div > div > input {
+        background: #ffffff !important;
+        color: #1a1a2e !important;
+        border: 1.5px solid #c1c9d2 !important;
+        border-radius: 6px !important;
+        padding: 10px 14px !important;
+        font-size: 14px !important;
+        -webkit-text-fill-color: #1a1a2e !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     inject_page_css("login")
     page_wrapper_open("login")
     if 'auth_mode' not in st.session_state:
         st.session_state['auth_mode'] = 'login'
+
     c1, c2, c3 = st.columns([1.2, 1, 1.2])
     with c2:
-        st.markdown("<div style='height:80px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:60px;'></div>", unsafe_allow_html=True)
         if st.session_state['auth_mode'] == 'login':
             with st.form("login_form"):
-                st.markdown('<div style="text-align:center;margin-bottom:28px;"><div style="font-size:36px;margin-bottom:10px;">📋</div><div style="font-size:24px;font-weight:800;color:#008485;">고객 관리 시스템</div><div style="font-size:13px;color:#8c95a6;margin-top:6px;">업무를 위해 로그인해 주세요</div></div>', unsafe_allow_html=True)
+                st.markdown('<div style="text-align:center;margin-bottom:24px;"><div style="font-size:34px;margin-bottom:8px;">📋</div><div style="font-size:22px;font-weight:800;color:#008485;">고객 관리 시스템</div><div style="font-size:13px;color:#8c95a6;margin-top:6px;">업무를 위해 로그인해 주세요</div></div>', unsafe_allow_html=True)
                 id_ = st.text_input("아이디", placeholder="아이디를 입력하세요")
                 pw_ = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요")
                 if st.form_submit_button("로그인", type="primary", use_container_width=True):
@@ -80,13 +124,13 @@ if not st.session_state['login_status']:
                             log_action(str(id_), "Login", "접속")
                         else:
                             st.error("아이디 또는 비밀번호가 일치하지 않습니다.")
-            st.markdown('<div class="login-footer" style="text-align:center;margin-top:20px;font-size:13px;color:#8c95a6;">계정이 없으신가요?</div>', unsafe_allow_html=True)
+            st.markdown('<div style="text-align:center;margin-top:16px;font-size:13px;color:#8c95a6;">계정이 없으신가요?</div>', unsafe_allow_html=True)
             if st.button("회원가입", use_container_width=True):
                 st.session_state['auth_mode'] = 'join'
                 st.rerun()
         else:
             with st.form("join_form"):
-                st.markdown('<div style="text-align:center;margin-bottom:28px;"><div style="font-size:36px;margin-bottom:10px;">📋</div><div style="font-size:24px;font-weight:800;color:#008485;">회원가입</div><div style="font-size:13px;color:#8c95a6;margin-top:6px;">관리자에게 인증코드를 발급받은 후 가입하세요</div></div>', unsafe_allow_html=True)
+                st.markdown('<div style="text-align:center;margin-bottom:24px;"><div style="font-size:34px;margin-bottom:8px;">📋</div><div style="font-size:22px;font-weight:800;color:#008485;">회원가입</div><div style="font-size:13px;color:#8c95a6;margin-top:6px;">관리자에게 인증코드를 발급받은 후 가입하세요</div></div>', unsafe_allow_html=True)
                 n1 = st.text_input("아이디", placeholder="사용할 아이디")
                 n2 = st.text_input("비밀번호", type="password", placeholder="비밀번호")
                 n3 = st.text_input("인증코드", placeholder="관리자 발급 코드")
@@ -108,7 +152,7 @@ if not st.session_state['login_status']:
                             st.error("인증코드가 올바르지 않습니다.")
                     else:
                         st.error("아이디와 비밀번호를 입력해 주세요.")
-            st.markdown('<div style="text-align:center;margin-top:20px;font-size:13px;color:#8c95a6;">이미 계정이 있으신가요?</div>', unsafe_allow_html=True)
+            st.markdown('<div style="text-align:center;margin-top:16px;font-size:13px;color:#8c95a6;">이미 계정이 있으신가요?</div>', unsafe_allow_html=True)
             if st.button("로그인으로 돌아가기", use_container_width=True):
                 st.session_state['auth_mode'] = 'login'
                 st.rerun()
@@ -118,9 +162,17 @@ if not st.session_state['login_status']:
 # 로그인 후 - 사이드바 + 메뉴 라우팅
 # ══════════════════════════════════════════════════
 else:
+    # 로그인 후 사이드바 표시 + 상단 여백 최소화
+    st.markdown("""
+    <style>
+    [data-testid="stSidebar"] { display: flex !important; }
+    [data-testid="collapsedControl"] { display: none !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
     if 'local_df' not in st.session_state or st.session_state.get('local_df') is None or (isinstance(st.session_state.get('local_df'), pd.DataFrame) and st.session_state['local_df'].empty):
         lp = st.empty()
-        lp.markdown('<div style="display:flex;flex-direction:column;align-items:center;padding:80px 20px;text-align:center;"><div style="width:60px;height:60px;border:4px solid #e0f2f2;border-top:4px solid #008485;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:24px;"></div><div style="font-size:18px;font-weight:700;color:#008485;">데이터를 불러오는 중입니다</div></div><style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>', unsafe_allow_html=True)
+        lp.markdown('<div style="display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center;"><div style="width:50px;height:50px;border:4px solid #e0f2f2;border-top:4px solid #008485;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:20px;"></div><div style="font-size:16px;font-weight:700;color:#008485;">데이터를 불러오는 중입니다</div></div><style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>', unsafe_allow_html=True)
         df0, msg0 = load_data_from_sheet()
         if df0 is not None:
             st.session_state['local_df'] = df0
@@ -142,7 +194,18 @@ else:
         rb = "rgba(0,132,133,0.25)" if role == "admin" else "rgba(255,255,255,0.08)"
         rbd = "rgba(0,132,133,0.4)" if role == "admin" else "rgba(255,255,255,0.1)"
 
-        st.markdown(f'<div style="text-align:center;padding:24px 0 12px;"><div style="width:44px;height:44px;background:linear-gradient(135deg,#008485,#006a6b);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">📋</div><div style="font-size:15px;font-weight:700;color:#e2e8f0!important;">고객 관리 시스템</div></div><div style="margin:8px 12px 4px;padding:14px 16px;background:{rb};border-radius:10px;border:1px solid {rbd};"><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:18px;font-weight:800;color:{rc}!important;">{uid}</div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5)!important;background:rgba(255,255,255,0.08);padding:3px 10px;border-radius:20px;">{rl}</div></div></div>', unsafe_allow_html=True)
+        st.markdown(f'''
+        <div style="padding:16px 0 8px;text-align:center;">
+          <div style="width:40px;height:40px;background:linear-gradient(135deg,#008485,#006a6b);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:20px;">📋</div>
+          <div style="font-size:14px;font-weight:700;color:#e2e8f0!important;">고객 관리 시스템</div>
+        </div>
+        <div style="margin:6px 12px;padding:12px 14px;background:{rb};border-radius:8px;border:1px solid {rbd};">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-size:16px;font-weight:800;color:{rc}!important;">{uid}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5)!important;background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:20px;">{rl}</div>
+          </div>
+        </div>
+        ''', unsafe_allow_html=True)
 
         try:
             sdf = st.session_state.get('local_df', pd.DataFrame())
@@ -156,7 +219,18 @@ else:
             tc, tdc, at = 0, 0, 0
 
         ab = (f'<span style="background:#E90061;color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:10px;margin-left:4px;">{at}</span>') if at > 0 else ''
-        st.markdown(f'<div style="margin:6px 12px 4px;display:flex;gap:8px;"><div style="flex:1;padding:10px 12px;background:rgba(255,255,255,0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.08);"><div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4)!important;">총 고객수</div><div style="font-size:17px;font-weight:800;color:#5ef0f1!important;">{tc:,}</div></div><div style="flex:1;padding:10px 12px;background:rgba(255,255,255,0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.08);"><div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4)!important;">알림 {ab}</div><div style="font-size:17px;font-weight:800;color:#f0c05e!important;">{tdc} <span style="font-size:11px;color:rgba(255,255,255,0.35)!important;">당일</span></div></div></div>', unsafe_allow_html=True)
+        st.markdown(f'''
+        <div style="margin:6px 12px 4px;display:flex;gap:8px;">
+          <div style="flex:1;padding:8px 10px;background:rgba(255,255,255,0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4)!important;">총 고객수</div>
+            <div style="font-size:16px;font-weight:800;color:#5ef0f1!important;">{tc:,}</div>
+          </div>
+          <div style="flex:1;padding:8px 10px;background:rgba(255,255,255,0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4)!important;">알림 {ab}</div>
+            <div style="font-size:16px;font-weight:800;color:#f0c05e!important;">{tdc} <span style="font-size:11px;color:rgba(255,255,255,0.35)!important;">당일</span></div>
+          </div>
+        </div>
+        ''', unsafe_allow_html=True)
         st.markdown("---")
 
         for icon, label in get_visible_menus():
@@ -178,22 +252,12 @@ else:
             logout_user()
 
     menu = st.session_state['menu_selection']
-
-    if menu == "메인화면":
-        page_dashboard.render()
-    elif menu == "고객 관리":
-        page_customer.render()
-    elif menu == "알림센터":
-        page_alerts.render()
-    elif menu == "나의 실적":
-        page_my_stats.render()
-    elif menu == "CMS 실적 확인":
-        page_bms.render()
-    elif menu == "종합 보고서":
-        page_report.render()
-    elif menu == "로그 분석":
-        page_log_analysis.render()
-    elif menu == "시스템 로그":
-        page_system_log.render()
-    elif menu == "사용자 관리":
-        page_user_mgmt.render()
+    if menu == "메인화면":        page_dashboard.render()
+    elif menu == "고객 관리":     page_customer.render()
+    elif menu == "알림센터":      page_alerts.render()
+    elif menu == "나의 실적":     page_my_stats.render()
+    elif menu == "CMS 실적 확인": page_bms.render()
+    elif menu == "종합 보고서":   page_report.render()
+    elif menu == "로그 분석":     page_log_analysis.render()
+    elif menu == "시스템 로그":   page_system_log.render()
+    elif menu == "사용자 관리":   page_user_mgmt.render()
