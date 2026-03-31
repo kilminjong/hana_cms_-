@@ -131,6 +131,10 @@ def load_data_from_sheet():
             h = str(h).strip()
             if h == "고객사명":
                 h = "고객명"
+            # 슬래시/괄호 포함 컬럼명 정규화
+            h = h.replace("개설/이행일", "개설이행일")
+            h = h.replace("서버pc상세위치(직접기입)", "서버위치")
+            h = h.replace("스케줄사용여부(Y/N)", "스케줄사용여부")
             if not h:
                 h = f"Empty_{len(ch)}"
             if h in seen:
@@ -296,7 +300,13 @@ def get_memos_by_customer(cno):
 # ══════════════════════════════════════════════════
 
 def _build_row_by_headers(hr, dm):
-    ch = [str(h).strip().replace(" ", "") for h in hr]
+    def _norm(h):
+        h = str(h).strip()
+        h = h.replace("개설/이행일", "개설이행일")
+        h = h.replace("서버pc상세위치(직접기입)", "서버위치")
+        h = h.replace("스케줄사용여부(Y/N)", "스케줄사용여부")
+        return h.replace(" ", "")
+    ch = [_norm(h) for h in hr]
     nr = [""] * len(hr)
     for i, cn in enumerate(ch):
         val = ""
@@ -318,7 +328,13 @@ def _sync_gsheet_update_bg(mode, dm):
         return
     try:
         headers = sheet.row_values(DATA_HEADER_ROW)
-        ch = [str(h).strip().replace(" ", "") for h in headers]
+        def _norm(h):
+            h = str(h).strip()
+            h = h.replace("개설/이행일", "개설이행일")
+            h = h.replace("서버pc상세위치(직접기입)", "서버위치")
+            h = h.replace("스케줄사용여부(Y/N)", "스케줄사용여부")
+            return h.replace(" ", "")
+        ch = [_norm(h) for h in headers]
         di = 1
         ci = (ch.index("고객번호") + 1) if "고객번호" in ch else None
         bi = (ch.index("사업자번호") + 1) if "사업자번호" in ch else None
@@ -426,30 +442,21 @@ def update_fast(cno, um):
 # 사용자 관리
 # ══════════════════════════════════════════════════
 
+@st.cache_data(ttl=600, show_spinner=False)
 def get_users():
-    """구글시트에서 사용자 목록 조회 + 세션 캐시 병합"""
-    # 세션에 임시 저장된 신규 가입자 먼저 가져오기
-    cached = {}
-    try:
-        cached = st.session_state.get('cached_users', {})
-    except:
-        pass
     try:
         cl = get_client()
         if not cl:
-            return cached
+            return {}
         r = cl.open_by_url(GOOGLE_SHEET_URL).worksheet(SHEET_USERS).get_all_records()
-        sheet_users = {
+        return {
             str(x['username']): {
                 "password": str(x['password']),
                 "role": str(x.get('role', 'user')).strip() or 'user'
             } for x in r
         }
-        # 구글시트 데이터 + 세션 캐시 병합 (구글시트 우선)
-        merged = {**cached, **sheet_users}
-        return merged
     except:
-        return cached
+        return {}
 
 
 # ══════════════════════════════════════════════════
