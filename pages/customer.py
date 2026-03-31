@@ -8,7 +8,6 @@ from style import inject_page_css, page_wrapper_open, page_wrapper_close, render
 from data import get_current_df, normalize_digits, validate_customer_inputs, check_duplicates_on_register, add_fast, del_fast, update_fast, get_timeline_by_customer, get_memos_by_customer, add_memo_fast
 from auth import get_user_role
 
-# 배지 셀 색상 (style.map용)
 BADGE_BG = {
     "개설완료":    "background-color:#dcfce7;color:#15803d;font-weight:700;",
     "개설대기":    "background-color:#fef3c7;color:#b45309;font-weight:700;",
@@ -32,12 +31,202 @@ def badge_html(text):
     s = BADGE_BG.get(t, "background-color:#f1f5f9;color:#64748b;")
     return f'<span style="{s}padding:3px 10px;border-radius:20px;font-size:12px;border:1px solid rgba(0,0,0,0.08);white-space:nowrap;">{t}</span>'
 
+def detail_page(sel, df, role):
+    """고객 상세 페이지 — 이미지와 유사한 레이아웃"""
+    def v(k): return str(sel.get(k, '') or '').strip() or '-'
+    c_no = v('고객번호')
+
+    # 뒤로가기 버튼
+    if st.button("← 목록으로", key="back_btn"):
+        st.session_state["selected_customer_no"] = None
+        st.session_state["edit_mode"] = False
+        st.rerun()
+
+    st.markdown(f"""
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+.detail-wrap * {{ font-family:'Pretendard',-apple-system,sans-serif !important; }}
+.detail-wrap {{ margin-top:8px; }}
+.section-box {{
+    background:#fff; border:1px solid #e2e6ea; border-radius:10px;
+    padding:16px 20px; margin-bottom:12px;
+}}
+.section-title {{
+    font-size:13px; font-weight:800; color:#008485;
+    border-bottom:2px solid #008485; padding-bottom:8px; margin-bottom:14px;
+    display:flex; align-items:center; gap:6px;
+}}
+.info-table {{ width:100%; border-collapse:collapse; font-size:13px; }}
+.info-table td {{
+    padding:7px 12px; border:1px solid #e2e6ea; color:#1a1a2e;
+    vertical-align:middle;
+}}
+.info-table td.lbl {{
+    background:#f4f6f9; font-weight:700; color:#4a5568;
+    width:120px; white-space:nowrap;
+}}
+.info-table td.val {{ background:#fff; }}
+.info-table td.val-highlight {{ background:#fff; font-weight:700; color:#008485; }}
+</style>
+<div class="detail-wrap">
+
+<!-- 상단: 고객정보 + 관리정보 -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+
+  <!-- 고객 기본정보 -->
+  <div class="section-box">
+    <div class="section-title">고객 정보</div>
+    <table class="info-table">
+      <tr><td class="lbl">고객명</td><td class="val-highlight" colspan="3">{v("고객명")}</td></tr>
+      <tr>
+        <td class="lbl">고객번호</td><td class="val">{c_no}</td>
+        <td class="lbl">사업자번호</td><td class="val">{v("사업자번호")}</td>
+      </tr>
+      <tr>
+        <td class="lbl">구축형</td><td class="val">{v("구축형")}</td>
+        <td class="lbl">구축구분</td><td class="val">{v("구축구분")}</td>
+      </tr>
+      <tr>
+        <td class="lbl">관리코드</td><td class="val">{v("관리코드")}</td>
+        <td class="lbl">관리구분</td><td class="val">{v("관리구분")}</td>
+      </tr>
+      <tr>
+        <td class="lbl">신규접수일</td><td class="val">{v("신규접수일")}</td>
+        <td class="lbl">개설/이행일</td><td class="val">{v("개설이행일")}</td>
+      </tr>
+      <tr>
+        <td class="lbl">개설구분</td><td class="val">{badge_html(v("개설구분"))}</td>
+        <td class="lbl">연계상태</td><td class="val">{badge_html(v("연계상태"))}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 담당자 정보 -->
+  <div class="section-box">
+    <div class="section-title">담당자 정보</div>
+    <table class="info-table">
+      <tr>
+        <td class="lbl">영업 담당자</td>
+        <td class="val-highlight" colspan="3">{v("담당자")}</td>
+      </tr>
+      <tr>
+        <td class="lbl">고객사 담당자</td><td class="val">{v("고객담당자")}</td>
+        <td class="lbl">부서</td><td class="val">{v("담당부서")}</td>
+      </tr>
+      <tr>
+        <td class="lbl">연락처</td><td class="val" colspan="3">{v("담당연락처")}</td>
+      </tr>
+    </table>
+  </div>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+    # 메모 + 타임라인 2단 레이아웃
+    col_memo, col_timeline = st.columns([1, 1])
+
+    with col_memo:
+        render_section_title("메모")
+        memos = get_memos_by_customer(c_no)
+        if memos:
+            mih = ""
+            for m in reversed(memos):
+                mih += f'<div style="background:#fff;padding:12px 16px;margin-bottom:8px;border-radius:8px;border:1px solid #dfe3e8;border-left:3px solid #008485;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-weight:700;font-size:12px;color:#006a6b;background:#e0f2f2;padding:2px 8px;border-radius:20px;">{m.get("Writer","")}</span><span style="font-size:11px;color:#8c95a6;">{m.get("Date","")}</span></div><div style="font-size:13px;color:#1a1a2e;line-height:1.6;">{m.get("Memo","")}</div></div>'
+            components.html(f'<style>*{{margin:0;padding:0;box-sizing:border-box;font-family:"Pretendard",-apple-system,sans-serif}}</style>{mih}', height=min(len(memos)*100+20, 300), scrolling=True)
+        with st.form("memo_form"):
+            mt = st.text_area("메모 입력", height=80, placeholder="메모를 입력하세요...", label_visibility="collapsed")
+            if st.form_submit_button("메모 저장", type="primary", use_container_width=True):
+                if mt:
+                    add_memo_fast(c_no, mt, st.session_state['current_user'])
+                    st.rerun()
+
+    with col_timeline:
+        render_section_title("변경 이력")
+        tld = get_timeline_by_customer(c_no)
+        if tld:
+            tli = ""
+            for tl in sorted(tld, key=lambda x: x.get('Date',''), reverse=True):
+                fld=tl.get('Field',''); ov=tl.get('OldValue',''); nv=tl.get('NewValue','')
+                if fld=="신규등록": dt2=f"고객 신규 등록 ({nv})"; ic="🆕"
+                else: dt2=f"<b>{fld}</b>: <span style='color:#dc2626;text-decoration:line-through;'>{ov}</span> → <span style='color:#16a34a;font-weight:700;'>{nv}</span>"; ic="🔄"
+                tli += f'<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #f1f3f5;"><div style="font-size:14px;min-width:20px;">{ic}</div><div style="flex:1;"><div style="font-size:12px;color:#1a1a2e;">{dt2}</div><div style="font-size:11px;color:#8c95a6;margin-top:2px;">{tl.get("User","")} · {tl.get("Date","")}</div></div></div>'
+            components.html(f'<style>*{{margin:0;padding:0;box-sizing:border-box;font-family:"Pretendard",-apple-system,sans-serif}}</style><div style="background:#fff;border-radius:8px;padding:12px 16px;border:1px solid #dfe3e8;">{tli}</div>', height=min(len(tld)*60+30, 300), scrolling=True)
+        else:
+            st.info("변경 이력이 없습니다.")
+
+    st.markdown("---")
+
+    # 수정 버튼
+    if st.button("수정", type="primary", key="edit_btn"):
+        st.session_state["edit_mode"] = True
+        st.rerun()
+
+    if st.session_state.get("edit_mode"):
+        with st.form("edit"):
+            render_section_title("기본 정보 수정")
+            e1, e2 = st.columns(2)
+            with e1:
+                st.text_input("고객번호", value=str(c_no), disabled=True)
+                ename = st.text_input("고객명", value=str(v("고객명")))
+            with e2:
+                ebiz = st.text_input("사업자번호", value=str(v("사업자번호")))
+                ebo = ["기본형","연계형","기타"]
+                ebuild = st.selectbox("구축형", ebo, index=ebo.index(v("구축형")) if v("구축형") in ebo else 0)
+            render_section_title("고객사 담당자")
+            ec1, ec2, ec3 = st.columns(3)
+            with ec1: ecn = st.text_input("담당자명", value=str(v("고객담당자")))
+            with ec2:
+                to = ["인사팀","재무팀","총무팀","IT/전산팀","기타"]
+                ect = st.selectbox("부서", to, index=to.index(v("담당부서")) if v("담당부서") in to else 4)
+            with ec3: ecp = st.text_input("연락처", value=str(v("담당연락처")))
+            render_section_title("관리 정보")
+            em1, em2 = st.columns(2)
+            with em1:
+                mo = ["전준수","임인지","이수현","길민종","맹국성","이성환","기타"]
+                emgr = st.selectbox("영업 담당자", mo, index=mo.index(v("담당자")) if v("담당자") in mo else 6)
+                mto = ["일반관리","중점관리","VIP","해지예상"]
+                emtype = st.selectbox("관리구분", mto, index=mto.index(v("관리구분")) if v("관리구분") in mto else 0)
+                eimpl = st.text_input("개설/이행일", value=str(v("개설이행일")))
+            with em2:
+                oo = ["개설완료","개설대기"]
+                eopen = st.selectbox("개설구분", oo, index=oo.index(v("개설구분")) if v("개설구분") in oo else 1)
+                edate = st.text_input("신규접수일", value=str(v("신규접수일")))
+                bo = ["신규","재계약"]
+                ebg = st.selectbox("구축구분", bo, index=bo.index(v("구축구분")) if v("구축구분") in bo else 0)
+                ecode = st.text_input("관리코드", value=str(v("관리코드")))
+                lo = ["ERP연계대기","ERP연계진행","ERP연계취소","ERP연계완료","ERP 청구완료","연계청구보류"]
+                elink = st.selectbox("연계상태", lo, index=lo.index(v("연계상태")) if v("연계상태") in lo else 0)
+            if st.form_submit_button("수정 저장", type="primary"):
+                up = {"고객번호":c_no,"사업자번호":normalize_digits(ebiz),"고객명":ename,"구축형":ebuild,"고객담당자":ecn,"담당부서":ect,"담당연락처":ecp,"담당자":emgr,"관리구분":emtype,"개설구분":eopen,"신규접수일":edate,"구축구분":ebg,"관리코드":ecode,"개설이행일":eimpl,"연계상태":elink}
+                suc, m = update_fast(c_no, up)
+                if suc:
+                    st.success("수정 완료")
+                    st.session_state["edit_mode"] = False
+                    time.sleep(0.5)
+                    st.rerun()
+                else:
+                    st.error(f"실패: {m}")
+
 
 def render():
     inject_page_css("customer")
     page_wrapper_open("customer")
-    render_page_header("고객 관리", "고객 정보 조회 · 등록 · 수정 · 삭제")
     role = get_user_role()
+
+    # ── 상세 페이지 모드 ──
+    if st.session_state.get("selected_customer_no"):
+        df = get_current_df()
+        c_no = st.session_state["selected_customer_no"]
+        if '고객번호' in df.columns:
+            match = df[df['고객번호'].astype(str).str.strip() == str(c_no).strip()]
+            if not match.empty:
+                render_page_header("고객 상세", f"{match.iloc[0].get('고객명','')} · {c_no}")
+                detail_page(match.iloc[0], df, role)
+                page_wrapper_close()
+                return
+
+    # ── 목록 페이지 모드 ──
+    render_page_header("고객 관리", "고객 정보 조회 · 등록 · 수정 · 삭제")
 
     if role == "admin":
         tab1, tab2, tab3, tab4 = st.tabs(["조회/상세", "신규등록", "삭제", "일괄 등록"])
@@ -49,7 +238,6 @@ def render():
         try:
             df = get_current_df()
 
-            # 검색/필터
             with st.expander("검색 및 필터", expanded=True):
                 cs, cf1, cf2 = st.columns([2, 1, 1])
                 with cs:
@@ -69,13 +257,14 @@ def render():
             vc = [c for c in ["고객명","고객번호","사업자번호","구축형","담당자","개설구분","연계상태","관리구분","개설이행일"] if c in df.columns]
             badge_cols = [c for c in ["개설구분","연계상태","관리구분"] if c in vc]
 
-            # 1번: 빈 값 '-' 로 표시
             df_display = df[vc].copy()
             for col in badge_cols:
                 df_display[col] = df_display[col].replace('', '미설정').fillna('미설정')
 
-            # ── 1번: style.map으로 배지 색상 적용 ──
             styled = df_display.style.map(color_cell, subset=badge_cols)
+
+            # 고객 클릭 안내
+            st.caption("고객 행을 클릭하면 상세 정보로 이동합니다.")
 
             evt = st.dataframe(
                 styled,
@@ -83,163 +272,28 @@ def render():
                 hide_index=True,
                 on_select="rerun",
                 selection_mode="single-row",
-                height=400
+                height=500
             )
 
-            # ── 2번: 슬라이드 패널 ──
+            # row 클릭 → 상세 페이지로 이동
             if len(evt.selection.rows) > 0:
                 sel = df.iloc[evt.selection.rows[0]]
-                def v(k): return sel.get(k, '-')
-                c_no = str(v('고객번호'))
-
-                if st.session_state.get("selected_customer_no") != c_no:
+                c_no = str(sel.get('고객번호', '')).strip()
+                if c_no:
                     st.session_state["selected_customer_no"] = c_no
                     st.session_state["edit_mode"] = False
-
-                # 패널 HTML — st.markdown으로 렌더링 (iframe 아님, 바로 적용)
-                st.markdown(f"""
-<div style="background:#fff;border:1px solid #e2e6ea;border-left:4px solid #008485;
-     border-radius:12px;padding:20px 24px;margin-top:10px;
-     box-shadow:0 4px 16px rgba(0,132,133,.08);">
-
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;
-       margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #e2e6ea;">
-    <div>
-      <div style="font-size:17px;font-weight:800;color:#008485;">{v("고객명")}</div>
-      <div style="font-size:12px;color:#8c95a6;margin-top:2px;">
-        고객번호: {c_no} &nbsp;·&nbsp; 사업자번호: {v("사업자번호")}
-      </div>
-    </div>
-    <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;">
-      {badge_html(v("개설구분"))}
-      {badge_html(v("관리구분"))}
-      {badge_html(v("연계상태"))}
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;">
-    <div style="padding:10px 12px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
-      <div style="font-size:10px;font-weight:700;color:#8c95a6;text-transform:uppercase;margin-bottom:3px;">구축형태</div>
-      <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("구축형")}</div>
-    </div>
-    <div style="padding:10px 12px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
-      <div style="font-size:10px;font-weight:700;color:#8c95a6;text-transform:uppercase;margin-bottom:3px;">구축구분</div>
-      <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("구축구분")}</div>
-    </div>
-    <div style="padding:10px 12px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
-      <div style="font-size:10px;font-weight:700;color:#8c95a6;text-transform:uppercase;margin-bottom:3px;">신규접수일</div>
-      <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("신규접수일")}</div>
-    </div>
-    <div style="padding:10px 12px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
-      <div style="font-size:10px;font-weight:700;color:#8c95a6;text-transform:uppercase;margin-bottom:3px;">개설/이행일</div>
-      <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("개설이행일")}</div>
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-    <div style="padding:12px 14px;background:linear-gradient(135deg,#e0f2f2,#d4eded);border-radius:8px;border:1px solid #a8d8d8;">
-      <div style="font-size:10px;font-weight:700;color:#006a6b;text-transform:uppercase;margin-bottom:4px;">영업 담당자</div>
-      <div style="font-size:15px;font-weight:800;color:#008485;">{v("담당자")}</div>
-    </div>
-    <div style="padding:12px 14px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
-      <div style="font-size:10px;font-weight:700;color:#8c95a6;text-transform:uppercase;margin-bottom:4px;">고객사 담당자</div>
-      <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("고객담당자")} <span style="font-size:12px;color:#8c95a6;">({v("담당부서")})</span></div>
-      <div style="font-size:12px;color:#8c95a6;margin-top:2px;">{v("담당연락처")}</div>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-                # 수정 버튼
-                cb1, _, _ = st.columns([1, 1, 8])
-                with cb1:
-                    if st.button("수정", use_container_width=True):
-                        st.session_state["edit_mode"] = True
-                        st.rerun()
-
-                if st.session_state.get("edit_mode"):
-                    with st.form("edit"):
-                        render_section_title("기본 정보 수정")
-                        e1, e2 = st.columns(2)
-                        with e1:
-                            st.text_input("고객번호", value=str(c_no), disabled=True)
-                            ename = st.text_input("고객명", value=str(v("고객명")))
-                        with e2:
-                            ebiz = st.text_input("사업자번호", value=str(v("사업자번호")))
-                            ebo = ["기본형","연계형","기타"]
-                            ebuild = st.selectbox("구축형", ebo, index=ebo.index(v("구축형")) if v("구축형") in ebo else 0)
-                        render_section_title("고객사 담당자")
-                        ec1, ec2, ec3 = st.columns(3)
-                        with ec1: ecn = st.text_input("담당자명", value=str(v("고객담당자")))
-                        with ec2:
-                            to = ["인사팀","재무팀","총무팀","IT/전산팀","기타"]
-                            ect = st.selectbox("부서", to, index=to.index(v("담당부서")) if v("담당부서") in to else 4)
-                        with ec3: ecp = st.text_input("연락처", value=str(v("담당연락처")))
-                        render_section_title("관리 정보")
-                        em1, em2 = st.columns(2)
-                        with em1:
-                            mo = ["전준수","임인지","이수현","길민종","맹국성","이성환","기타"]
-                            emgr = st.selectbox("영업 담당자", mo, index=mo.index(v("담당자")) if v("담당자") in mo else 6)
-                            mto = ["일반관리","중점관리","VIP","해지예상"]
-                            emtype = st.selectbox("관리구분", mto, index=mto.index(v("관리구분")) if v("관리구분") in mto else 0)
-                            eimpl = st.text_input("개설/이행일", value=str(v("개설이행일")))
-                        with em2:
-                            oo = ["개설완료","개설대기"]
-                            eopen = st.selectbox("개설구분", oo, index=oo.index(v("개설구분")) if v("개설구분") in oo else 1)
-                            edate = st.text_input("신규접수일", value=str(v("신규접수일")))
-                            bo = ["신규","재계약"]
-                            ebg = st.selectbox("구축구분", bo, index=bo.index(v("구축구분")) if v("구축구분") in bo else 0)
-                            ecode = st.text_input("관리코드", value=str(v("관리코드")))
-                            lo = ["ERP연계대기","ERP연계진행","ERP연계취소","ERP연계완료","ERP 청구완료","연계청구보류"]
-                            elink = st.selectbox("연계상태", lo, index=lo.index(v("연계상태")) if v("연계상태") in lo else 0)
-                        if st.form_submit_button("수정 저장", type="primary"):
-                            up = {"고객번호":c_no,"사업자번호":normalize_digits(ebiz),"고객명":ename,"구축형":ebuild,"고객담당자":ecn,"담당부서":ect,"담당연락처":ecp,"담당자":emgr,"관리구분":emtype,"개설구분":eopen,"신규접수일":edate,"구축구분":ebg,"관리코드":ecode,"개설이행일":eimpl,"연계상태":elink}
-                            suc, m = update_fast(c_no, up)
-                            if suc:
-                                st.success("수정 완료")
-                                st.session_state["edit_mode"] = False
-                                time.sleep(0.5)
-                                st.rerun()
-                            else:
-                                st.error(f"실패: {m}")
-
-                render_section_title("변경 이력")
-                tld = get_timeline_by_customer(c_no)
-                if tld:
-                    tli = ""
-                    for tl in sorted(tld, key=lambda x: x.get('Date',''), reverse=True):
-                        fld=tl.get('Field',''); ov=tl.get('OldValue',''); nv=tl.get('NewValue','')
-                        if fld=="신규등록": dt2=f"고객 신규 등록 ({nv})"; ic="🆕"
-                        else: dt2=f"<b>{fld}</b>: <span style='color:#dc2626;text-decoration:line-through;'>{ov}</span> → <span style='color:#16a34a;font-weight:700;'>{nv}</span>"; ic="🔄"
-                        tli+=f'<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f1f3f5;"><div style="font-size:15px;min-width:22px;">{ic}</div><div style="flex:1;"><div style="font-size:13px;color:#1a1a2e;">{dt2}</div><div style="font-size:11px;color:#8c95a6;margin-top:2px;">{tl.get("User","")} · {tl.get("Date","")}</div></div></div>'
-                    components.html(f'<style>*{{margin:0;padding:0;box-sizing:border-box;font-family:"Pretendard",-apple-system,sans-serif}}</style><div style="background:#fff;border-radius:10px;padding:14px 18px;border:1px solid #dfe3e8;">{tli}</div>', height=min(len(tld)*65+40,380), scrolling=True)
-                else:
-                    st.info("변경 이력이 없습니다.")
-
-                render_section_title("메모")
-                memos = get_memos_by_customer(c_no)
-                if memos:
-                    mih=""
-                    for m in reversed(memos):
-                        mih+=f'<div style="background:#fff;padding:12px 16px;margin-bottom:8px;border-radius:8px;border:1px solid #dfe3e8;border-left:3px solid #008485;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #eef1f5;"><span style="font-weight:700;font-size:12px;color:#006a6b;background:#e0f2f2;padding:2px 8px;border-radius:20px;">{m.get("Writer","")}</span><span style="font-size:11px;color:#8c95a6;">{m.get("Date","")}</span></div><div style="font-size:13px;color:#1a1a2e;line-height:1.6;">{m.get("Memo","")}</div></div>'
-                    components.html(f'<style>*{{margin:0;padding:0;box-sizing:border-box;font-family:"Pretendard",-apple-system,sans-serif}}</style>{mih}', height=len(memos)*90+10, scrolling=True)
-                with st.form("memo"):
-                    mt = st.text_area("메모 내용", height=80, placeholder="메모를 입력하세요...")
-                    if st.form_submit_button("메모 저장", type="primary"):
-                        if mt:
-                            add_memo_fast(c_no, mt, st.session_state['current_user'])
-                            st.rerun()
+                    st.rerun()
 
         except Exception:
             st.rerun()
 
     with tab2:
         render_section_title("신규 고객 등록")
-        cdf=get_current_df(); nc="3000"
+        cdf = get_current_df(); nc = "3000"
         if not cdf.empty and "관리코드" in cdf.columns:
             try:
-                ncc=pd.to_numeric(cdf["관리코드"],errors='coerce').dropna()
-                if not ncc.empty: nc=str(int(ncc.max())+1)
+                ncc = pd.to_numeric(cdf["관리코드"], errors='coerce').dropna()
+                if not ncc.empty: nc = str(int(ncc.max())+1)
             except: pass
         st.info(f"필수 항목(*)을 입력해 주세요. 관리코드는 **{nc}**번으로 자동 배정됩니다.")
         with st.form("reg"):
