@@ -45,17 +45,13 @@ html, body, .stApp, [data-testid="stAppViewContainer"],
 section[data-testid="stSidebarNav"] { display: none !important; }
 footer { visibility: hidden !important; }
 
-/* 상단 헤더 영역 완전 제거 */
+/* 상단 헤더 배경 투명하게만 처리 (숨기지 않음) */
 [data-testid="stHeader"] {
-  display: none !important;
-  height: 0 !important;
+  background: transparent !important;
 }
-header[data-testid="stHeader"] {
-  display: none !important;
-}
-/* 상단 여백 최소화 */
+/* 상단 여백 최소화 - 헤더 높이 고려 */
 .block-container {
-  padding-top: 0.8rem !important;
+  padding-top: 3.5rem !important;
   padding-bottom: 1rem !important;
 }
 /* 사이드바 상단 여백 최소화 */
