@@ -114,6 +114,7 @@ def get_data_sheet_safe():
         return None, f"연결 실패: {e}"
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def load_data_from_sheet():
     sheet, msg = get_data_sheet_safe()
     if not sheet:
