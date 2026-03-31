@@ -119,6 +119,34 @@ def detail_page(sel, df, role):
     </table>
   </div>
 </div>
+
+<!-- 하단: ERP/서버 정보 -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+  <div class="section-box">
+    <div class="section-title">ERP 정보</div>
+    <table class="info-table">
+      <tr>
+        <td class="lbl">ERP 회사</td><td class="val">{v("ERP회사")}</td>
+        <td class="lbl">ERP 종류</td><td class="val">{v("ERP종류")}</td>
+      </tr>
+      <tr>
+        <td class="lbl">ERP DB</td><td class="val">{v("ERPDB")}</td>
+        <td class="lbl">연계방식</td><td class="val">{v("연계방식")}</td>
+      </tr>
+      <tr>
+        <td class="lbl">스케줄 사용</td><td class="val" colspan="3">{v("스케줄사용여부")}</td>
+      </tr>
+    </table>
+  </div>
+  <div class="section-box">
+    <div class="section-title">서버 정보</div>
+    <table class="info-table">
+      <tr>
+        <td class="lbl">서버 위치</td><td class="val" colspan="3">{v("서버위치")}</td>
+      </tr>
+    </table>
+  </div>
+</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -196,8 +224,22 @@ def detail_page(sel, df, role):
                 ecode = st.text_input("관리코드", value=str(v("관리코드")))
                 lo = ["ERP연계대기","ERP연계진행","ERP연계취소","ERP연계완료","ERP 청구완료","연계청구보류"]
                 elink = st.selectbox("연계상태", lo, index=lo.index(v("연계상태")) if v("연계상태") in lo else 0)
+            render_section_title("ERP 및 서버 정보")
+            fx1,fx2,fx3=st.columns(3)
+            ERP_CO=["","더존비즈온","자체개발","영림원","이카운트","ORACLE","오직","디모데","지저스온","큐베이스"]
+            ERP_TY=["","amaranth10","ERP-10","옴니이솔","ICUBE","디모데","오직","자체개발","영림"]
+            ERP_DB=["","MSSQL","Oracle","Mysql","TIBERO","Maria DB","postgres"]
+            LNK_TY=["","DB to DB","RFC","SFTP","FTP","API"]
+            SCH_TY=["","Y","N"]
+            with fx1: eerpc=st.selectbox("ERP 회사",ERP_CO,index=ERP_CO.index(v("ERP회사")) if v("ERP회사") in ERP_CO else 0)
+            with fx2: eerpt=st.selectbox("ERP 종류",ERP_TY,index=ERP_TY.index(v("ERP종류")) if v("ERP종류") in ERP_TY else 0)
+            with fx3: eerpdb=st.selectbox("ERP DB",ERP_DB,index=ERP_DB.index(v("ERPDB")) if v("ERPDB") in ERP_DB else 0)
+            fx4,fx5,fx6=st.columns(3)
+            with fx4: elnk=st.selectbox("연계방식",LNK_TY,index=LNK_TY.index(v("연계방식")) if v("연계방식") in LNK_TY else 0)
+            with fx5: esched=st.selectbox("스케줄 사용여부",SCH_TY,index=SCH_TY.index(v("스케줄사용여부")) if v("스케줄사용여부") in SCH_TY else 0)
+            with fx6: esvr=st.text_input("서버 위치",value=str(v("서버위치")) if v("서버위치")!="-" else "")
             if st.form_submit_button("수정 저장", type="primary"):
-                up = {"고객번호":c_no,"사업자번호":normalize_digits(ebiz),"고객명":ename,"구축형":ebuild,"고객담당자":ecn,"담당부서":ect,"담당연락처":ecp,"담당자":emgr,"관리구분":emtype,"개설구분":eopen,"신규접수일":edate,"구축구분":ebg,"관리코드":ecode,"개설이행일":eimpl,"연계상태":elink}
+                up = {"고객번호":c_no,"사업자번호":normalize_digits(ebiz),"고객명":ename,"구축형":ebuild,"고객담당자":ecn,"담당부서":ect,"담당연락처":ecp,"담당자":emgr,"관리구분":emtype,"개설구분":eopen,"신규접수일":edate,"구축구분":ebg,"관리코드":ecode,"개설이행일":eimpl,"연계상태":elink,"ERP회사":eerpc,"ERP종류":eerpt,"ERPDB":eerpdb,"연계방식":elnk,"스케줄사용여부":esched,"서버위치":esvr}
                 suc, m = update_fast(c_no, up)
                 if suc:
                     st.success("수정 완료")
@@ -312,7 +354,16 @@ def render():
             c5b,c5c=st.columns(2)
             with c5b: iimp=st.text_input("개설/이행일",placeholder="예: 20260206")
             with c5c: ilnk=st.selectbox("연계상태 (*)",["ERP연계대기","ERP연계진행","ERP연계취소","ERP연계완료","ERP 청구완료","연계청구보류"])
-            render_section_title("3. 고객사 담당자 (선택)")
+            render_section_title("3. ERP 및 서버 정보 (선택)")
+            ex1,ex2,ex3=st.columns(3)
+            with ex1: i_erpc=st.selectbox("ERP 회사",["","더존비즈온","자체개발","영림원","이카운트","ORACLE","오직","디모데","지저스온","큐베이스"])
+            with ex2: i_erpt=st.selectbox("ERP 종류",["","amaranth10","ERP-10","옴니이솔","ICUBE","디모데","오직","자체개발","영림"])
+            with ex3: i_erpdb=st.selectbox("ERP DB",["","MSSQL","Oracle","Mysql","TIBERO","Maria DB","postgres"])
+            ex4,ex5,ex6=st.columns(3)
+            with ex4: i_lnk=st.selectbox("연계방식",["","DB to DB","RFC","SFTP","FTP","API"])
+            with ex5: i_sched=st.selectbox("스케줄 사용여부",["","Y","N"])
+            with ex6: i_svr=st.text_input("서버 위치",placeholder="서버 상세 위치 직접 입력")
+            render_section_title("4. 고객사 담당자 (선택)")
             c8,c9,c10=st.columns(3)
             with c8: icn=st.text_input("고객 담당자명",placeholder="예: 김철수")
             with c9: ict=st.selectbox("담당 부서",["인사팀","재무팀","총무팀","IT/전산팀","기타"],index=1)
@@ -329,7 +380,7 @@ def render():
                     dok,dmsg=check_duplicates_on_register(get_current_df(),str(i1).strip(),i2)
                     if not dok: st.error(f"🚫 {dmsg}")
                     else:
-                        d={"고객번호":str(i1).strip(),"사업자번호":normalize_digits(i2),"고객명":str(i3).strip(),"구축형":str(i4),"담당자":str(i5),"관리구분":str(i6),"구축구분":str(i7),"관리코드":str(i8),"개설구분":str(i0),"신규접수일":str(i9),"고객담당자":str(icn).strip(),"담당부서":str(ict),"담당연락처":str(icp).strip(),"개설이행일":str(iimp).strip(),"연계상태":str(ilnk)}
+                        d={"고객번호":str(i1).strip(),"사업자번호":normalize_digits(i2),"고객명":str(i3).strip(),"구축형":str(i4),"담당자":str(i5),"관리구분":str(i6),"구축구분":str(i7),"관리코드":str(i8),"개설구분":str(i0),"신규접수일":str(i9),"고객담당자":str(icn).strip(),"담당부서":str(ict),"담당연락처":str(icp).strip(),"개설이행일":str(iimp).strip(),"연계상태":str(ilnk),"ERP회사":str(i_erpc),"ERP종류":str(i_erpt),"ERPDB":str(i_erpdb),"연계방식":str(i_lnk),"스케줄사용여부":str(i_sched),"서버위치":str(i_svr).strip()}
                         suc,msg2=add_fast(d)
                         if suc: st.success("저장 완료!"); time.sleep(1); st.rerun()
                         else: st.error(f"실패: {msg2}")
