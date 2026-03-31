@@ -142,8 +142,22 @@ if not st.session_state['login_status']:
                 n2 = st.text_input("비밀번호", type="password", placeholder="비밀번호", autocomplete="new-password")
                 n3 = st.text_input("인증코드", placeholder="관리자 발급 코드", autocomplete="off")
                 if st.form_submit_button("가입하기", type="primary", use_container_width=True):
-                    if n1 and n2:
-                        if n3 == ADMIN_CODE:
+                    import re as _re
+                    def validate_pw(pw):
+                        if len(pw) < 8:
+                            return False, "비밀번호는 8자리 이상이어야 합니다."
+                        if not _re.search(r'[A-Za-z]', pw):
+                            return False, "비밀번호에 영문자가 포함되어야 합니다."
+                        if not _re.search(r'[0-9]', pw):
+                            return False, "비밀번호에 숫자가 포함되어야 합니다."
+                        return True, "OK"
+                    if not n1 or not n2:
+                        st.error("아이디와 비밀번호를 입력해 주세요.")
+                    else:
+                        pw_ok, pw_msg = validate_pw(n2)
+                        if not pw_ok:
+                            st.error(pw_msg)
+                        elif n3 == ADMIN_CODE:
                             add_user(n1, hash_password(n2), "admin")
                             st.success("관리자 가입 완료!")
                             time.sleep(0.8)
@@ -157,8 +171,6 @@ if not st.session_state['login_status']:
                             st.rerun()
                         else:
                             st.error("인증코드가 올바르지 않습니다.")
-                    else:
-                        st.error("아이디와 비밀번호를 입력해 주세요.")
             st.markdown('<div style="text-align:center;margin-top:16px;font-size:13px;color:#8c95a6;">이미 계정이 있으신가요?</div>', unsafe_allow_html=True)
             if st.button("로그인으로 돌아가기", use_container_width=True):
                 st.session_state['auth_mode'] = 'login'
