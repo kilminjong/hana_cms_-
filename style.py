@@ -51,14 +51,14 @@ footer { visibility: hidden !important; }
   text-align: left !important;
   justify-content: flex-start !important;
   border-radius: var(--radius-sm) !important;
-  border: none !important;
-  background: transparent !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  background: rgba(255,255,255,0.03) !important;
   color: #94a3b8 !important;
   font-weight: 500 !important;
   font-size: 13.5px !important;
   padding: 10px 16px !important;
   transition: all .18s ease !important;
-  margin-bottom: 1px !important;
+  margin-bottom: 4px !important;
   width: 100% !important;
 }
 [data-testid="stSidebar"] .stButton > button:hover {
@@ -68,6 +68,7 @@ footer { visibility: hidden !important; }
 [data-testid="stSidebar"] .stButton > button[kind="primary"] {
   background: rgba(0,132,133,0.2) !important;
   color: #4dd8d9 !important;
+  border: 1px solid rgba(0,132,133,0.4) !important;
   border-left: 3px solid #008485 !important;
   font-weight: 700 !important;
   padding-left: 13px !important;
