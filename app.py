@@ -30,7 +30,6 @@ st.set_page_config(
     menu_items={}
 )
 
-# 공통 숨김 CSS
 st.markdown("""
 <style>
 html, body, .stApp, [data-testid="stAppViewContainer"],
@@ -45,16 +44,23 @@ html, body, .stApp, [data-testid="stAppViewContainer"],
 [data-testid="stSidebarNav"] { display: none !important; }
 section[data-testid="stSidebarNav"] { display: none !important; }
 footer { visibility: hidden !important; }
-header { background: transparent !important; }
 
-/* 상단 여백 제거 */
+/* 상단 헤더 영역 완전 제거 */
+[data-testid="stHeader"] {
+  display: none !important;
+  height: 0 !important;
+}
+header[data-testid="stHeader"] {
+  display: none !important;
+}
+/* 상단 여백 최소화 */
 .block-container {
-  padding-top: 1.5rem !important;
+  padding-top: 0.8rem !important;
   padding-bottom: 1rem !important;
 }
-[data-testid="stHeader"] {
-  height: 0 !important;
-  min-height: 0 !important;
+/* 사이드바 상단 여백 최소화 */
+[data-testid="stSidebar"] > div:first-child {
+  padding-top: 0.5rem !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -71,7 +77,6 @@ if 'current_user' not in st.session_state:
 # 로그인 화면
 # ══════════════════════════════════════════════════
 if not st.session_state['login_status']:
-    # 로그인 화면에서 사이드바 완전 숨김
     st.markdown("""
     <style>
     [data-testid="stSidebar"] { display: none !important; }
@@ -82,7 +87,6 @@ if not st.session_state['login_status']:
         padding-left: 1rem !important;
         padding-right: 1rem !important;
     }
-    /* 로그인 폼 정상화 */
     [data-testid="stForm"] {
         background: #ffffff !important;
         border-radius: 14px !important;
@@ -90,7 +94,6 @@ if not st.session_state['login_status']:
         box-shadow: 0 8px 24px rgba(0,0,0,0.10) !important;
         border: 1px solid #e2e6ea !important;
     }
-    /* 비밀번호 필드 정상화 */
     .stTextInput > div > div > input {
         background: #ffffff !important;
         color: #1a1a2e !important;
@@ -101,6 +104,14 @@ if not st.session_state['login_status']:
         -webkit-text-fill-color: #1a1a2e !important;
     }
     </style>
+    <!-- 브라우저 비밀번호 유출 경고 제거 -->
+    <script>
+    window.addEventListener('load', function() {
+        document.querySelectorAll('input[type="password"]').forEach(function(el) {
+            el.setAttribute('autocomplete', 'new-password');
+        });
+    });
+    </script>
     """, unsafe_allow_html=True)
 
     inject_page_css("login")
@@ -114,8 +125,8 @@ if not st.session_state['login_status']:
         if st.session_state['auth_mode'] == 'login':
             with st.form("login_form"):
                 st.markdown('<div style="text-align:center;margin-bottom:24px;"><div style="font-size:34px;margin-bottom:8px;">📋</div><div style="font-size:22px;font-weight:800;color:#008485;">고객 관리 시스템</div><div style="font-size:13px;color:#8c95a6;margin-top:6px;">업무를 위해 로그인해 주세요</div></div>', unsafe_allow_html=True)
-                id_ = st.text_input("아이디", placeholder="아이디를 입력하세요")
-                pw_ = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요")
+                id_ = st.text_input("아이디", placeholder="아이디를 입력하세요", autocomplete="username")
+                pw_ = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요", autocomplete="current-password")
                 if st.form_submit_button("로그인", type="primary", use_container_width=True):
                     with st.spinner("로그인 중..."):
                         db = get_users()
@@ -131,9 +142,9 @@ if not st.session_state['login_status']:
         else:
             with st.form("join_form"):
                 st.markdown('<div style="text-align:center;margin-bottom:24px;"><div style="font-size:34px;margin-bottom:8px;">📋</div><div style="font-size:22px;font-weight:800;color:#008485;">회원가입</div><div style="font-size:13px;color:#8c95a6;margin-top:6px;">관리자에게 인증코드를 발급받은 후 가입하세요</div></div>', unsafe_allow_html=True)
-                n1 = st.text_input("아이디", placeholder="사용할 아이디")
-                n2 = st.text_input("비밀번호", type="password", placeholder="비밀번호")
-                n3 = st.text_input("인증코드", placeholder="관리자 발급 코드")
+                n1 = st.text_input("아이디", placeholder="사용할 아이디", autocomplete="off")
+                n2 = st.text_input("비밀번호", type="password", placeholder="비밀번호", autocomplete="new-password")
+                n3 = st.text_input("인증코드", placeholder="관리자 발급 코드", autocomplete="off")
                 if st.form_submit_button("가입하기", type="primary", use_container_width=True):
                     if n1 and n2:
                         if n3 == ADMIN_CODE:
@@ -162,7 +173,6 @@ if not st.session_state['login_status']:
 # 로그인 후 - 사이드바 + 메뉴 라우팅
 # ══════════════════════════════════════════════════
 else:
-    # 로그인 후 사이드바 표시 + 상단 여백 최소화
     st.markdown("""
     <style>
     [data-testid="stSidebar"] { display: flex !important; }
@@ -195,14 +205,14 @@ else:
         rbd = "rgba(0,132,133,0.4)" if role == "admin" else "rgba(255,255,255,0.1)"
 
         st.markdown(f'''
-        <div style="padding:16px 0 8px;text-align:center;">
-          <div style="width:40px;height:40px;background:linear-gradient(135deg,#008485,#006a6b);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:20px;">📋</div>
-          <div style="font-size:14px;font-weight:700;color:#e2e8f0!important;">고객 관리 시스템</div>
+        <div style="padding:12px 0 8px;text-align:center;">
+          <div style="width:38px;height:38px;background:linear-gradient(135deg,#008485,#006a6b);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:18px;">📋</div>
+          <div style="font-size:13px;font-weight:700;color:#e2e8f0!important;">고객 관리 시스템</div>
         </div>
-        <div style="margin:6px 12px;padding:12px 14px;background:{rb};border-radius:8px;border:1px solid {rbd};">
+        <div style="margin:4px 10px 6px;padding:10px 12px;background:{rb};border-radius:8px;border:1px solid {rbd};">
           <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div style="font-size:16px;font-weight:800;color:{rc}!important;">{uid}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.5)!important;background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:20px;">{rl}</div>
+            <div style="font-size:15px;font-weight:800;color:{rc}!important;">{uid}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.5)!important;background:rgba(255,255,255,0.08);padding:2px 7px;border-radius:20px;">{rl}</div>
           </div>
         </div>
         ''', unsafe_allow_html=True)
@@ -220,14 +230,14 @@ else:
 
         ab = (f'<span style="background:#E90061;color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:10px;margin-left:4px;">{at}</span>') if at > 0 else ''
         st.markdown(f'''
-        <div style="margin:6px 12px 4px;display:flex;gap:8px;">
+        <div style="margin:4px 10px 6px;display:flex;gap:6px;">
           <div style="flex:1;padding:8px 10px;background:rgba(255,255,255,0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4)!important;">총 고객수</div>
-            <div style="font-size:16px;font-weight:800;color:#5ef0f1!important;">{tc:,}</div>
+            <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.4)!important;text-transform:uppercase;">총 고객수</div>
+            <div style="font-size:15px;font-weight:800;color:#5ef0f1!important;">{tc:,}</div>
           </div>
           <div style="flex:1;padding:8px 10px;background:rgba(255,255,255,0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4)!important;">알림 {ab}</div>
-            <div style="font-size:16px;font-weight:800;color:#f0c05e!important;">{tdc} <span style="font-size:11px;color:rgba(255,255,255,0.35)!important;">당일</span></div>
+            <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.4)!important;text-transform:uppercase;">알림 {ab}</div>
+            <div style="font-size:15px;font-weight:800;color:#f0c05e!important;">{tdc} <span style="font-size:10px;color:rgba(255,255,255,0.35)!important;">당일</span></div>
           </div>
         </div>
         ''', unsafe_allow_html=True)
