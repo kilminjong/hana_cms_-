@@ -8,70 +8,29 @@ from style import inject_page_css, page_wrapper_open, page_wrapper_close, render
 from data import get_current_df, normalize_digits, validate_customer_inputs, check_duplicates_on_register, add_fast, del_fast, update_fast, get_timeline_by_customer, get_memos_by_customer, add_memo_fast
 from auth import get_user_role
 
-
-BADGE_STYLE = {
-    "개설완료":     "background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;",
-    "개설대기":     "background:#fef3c7;color:#b45309;border:1px solid #fde68a;",
-    "정상":         "background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;",
-    "해지":         "background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;",
-    "해지예상":     "background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;",
-    "취소":         "background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;",
-    "ERP연계완료":  "background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;",
-    "ERP연계대기":  "background:#fef3c7;color:#b45309;border:1px solid #fde68a;",
-    "ERP연계진행":  "background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;",
-    "ERP연계취소":  "background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;",
-    "ERP 청구완료": "background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;",
-    "연계청구보류": "background:#fce7f3;color:#9d174d;border:1px solid #fbcfe8;",
+# 배지 셀 색상 (style.map용)
+BADGE_BG = {
+    "개설완료":    "background-color:#dcfce7;color:#15803d;font-weight:700;",
+    "개설대기":    "background-color:#fef3c7;color:#b45309;font-weight:700;",
+    "정상":        "background-color:#dcfce7;color:#15803d;font-weight:700;",
+    "해지":        "background-color:#fee2e2;color:#b91c1c;font-weight:700;",
+    "해지예상":    "background-color:#fee2e2;color:#b91c1c;font-weight:700;",
+    "취소":        "background-color:#f1f5f9;color:#64748b;font-weight:700;",
+    "ERP연계완료": "background-color:#dbeafe;color:#1d4ed8;font-weight:700;",
+    "ERP연계대기": "background-color:#fef3c7;color:#b45309;font-weight:700;",
+    "ERP연계진행": "background-color:#e0f2fe;color:#0369a1;font-weight:700;",
+    "ERP연계취소": "background-color:#f1f5f9;color:#64748b;font-weight:700;",
+    "ERP 청구완료":"background-color:#dbeafe;color:#1d4ed8;font-weight:700;",
+    "연계청구보류": "background-color:#fce7f3;color:#9d174d;font-weight:700;",
 }
+
+def color_cell(val):
+    return BADGE_BG.get(str(val).strip(), "")
 
 def badge_html(text):
     t = str(text).strip()
-    s = BADGE_STYLE.get(t, "background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;")
-    return f'<span style="{s}padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;">{t}</span>'
-
-
-def render_badge_table(df, vc, selected_no=None):
-    """배지 포함 HTML 테이블 렌더링"""
-    badge_cols = [c for c in ["개설구분","연계상태","관리구분"] if c in vc]
-    th = "".join(f'<th>{c}</th>' for c in vc)
-    rows = ""
-    for i, (_, row) in enumerate(df[vc].iterrows()):
-        c_no = str(row.get('고객번호', ''))
-        is_sel = (c_no == str(selected_no)) if selected_no else False
-        row_style = "background:#e0f2f2 !important;" if is_sel else ""
-        cells = ""
-        for c in vc:
-            val = str(row[c]) if pd.notna(row[c]) else ""
-            if c in badge_cols and val and val not in ["-", "nan"]:
-                cells += f'<td>{badge_html(val)}</td>'
-            else:
-                cells += f'<td>{val}</td>'
-        rows += f'<tr style="{row_style}" onclick="selectRow({i},\'{c_no}\')">{cells}</tr>'
-
-    return f"""
-<style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-*{{margin:0;padding:0;box-sizing:border-box;font-family:'Pretendard',-apple-system,sans-serif;}}
-body{{background:transparent;}}
-.wrap{{border:1px solid #e2e6ea;border-radius:10px;overflow:auto;max-height:360px;}}
-table{{width:100%;border-collapse:collapse;font-size:13px;}}
-thead{{position:sticky;top:0;z-index:2;}}
-th{{background:#f4f6f9;padding:10px 14px;text-align:left;font-weight:700;color:#4a5568;font-size:11px;border-bottom:2px solid #e2e6ea;white-space:nowrap;text-transform:uppercase;letter-spacing:.04em;}}
-td{{padding:9px 14px;border-bottom:1px solid #f1f3f5;color:#1a1a2e;vertical-align:middle;white-space:nowrap;}}
-tr:hover td{{background:#f0f9f9;cursor:pointer;}}
-tr.sel td{{background:#e0f2f2!important;}}
-</style>
-<div class="wrap">
-<table><thead><tr>{th}</tr></thead><tbody>{rows}</tbody></table>
-</div>
-<script>
-function selectRow(idx, cno) {{
-    document.querySelectorAll('tr.sel').forEach(r=>r.classList.remove('sel'));
-    event.currentTarget.classList.add('sel');
-    window.parent.postMessage({{type:'streamlit:setComponentValue', value:cno}}, '*');
-}}
-</script>
-"""
+    s = BADGE_BG.get(t, "background-color:#f1f5f9;color:#64748b;")
+    return f'<span style="{s}padding:3px 10px;border-radius:20px;font-size:12px;border:1px solid rgba(0,0,0,0.08);white-space:nowrap;">{t}</span>'
 
 
 def render():
@@ -90,6 +49,7 @@ def render():
         try:
             df = get_current_df()
 
+            # 검색/필터
             with st.expander("검색 및 필터", expanded=True):
                 cs, cf1, cf2 = st.columns([2, 1, 1])
                 with cs:
@@ -107,63 +67,85 @@ def render():
                 df = df[df['구축형'].isin(sel_t)]
 
             vc = [c for c in ["고객명","고객번호","사업자번호","구축형","담당자","개설구분","연계상태","관리구분","개설이행일"] if c in df.columns]
+            badge_cols = [c for c in ["개설구분","연계상태","관리구분"] if c in vc]
 
-            # ── 1번: 배지 HTML 테이블 ──
-            sel_no = st.session_state.get("selected_customer_no")
-            components.html(render_badge_table(df, vc, sel_no), height=400, scrolling=False)
+            # ── 1번: style.map으로 배지 색상 적용 ──
+            styled = df[vc].style.map(color_cell, subset=badge_cols)
 
-            # Streamlit 선택용 dataframe (숨김)
-            st.markdown('<div style="position:absolute;opacity:0;height:1px;overflow:hidden;">', unsafe_allow_html=True)
-            evt = st.dataframe(df[vc], use_container_width=False, hide_index=True,
-                               on_select="rerun", selection_mode="single-row", height=1)
-            st.markdown('</div>', unsafe_allow_html=True)
+            evt = st.dataframe(
+                styled,
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                height=400
+            )
 
+            # ── 2번: 슬라이드 패널 ──
             if len(evt.selection.rows) > 0:
                 sel = df.iloc[evt.selection.rows[0]]
                 def v(k): return sel.get(k, '-')
                 c_no = str(v('고객번호'))
+
                 if st.session_state.get("selected_customer_no") != c_no:
                     st.session_state["selected_customer_no"] = c_no
                     st.session_state["edit_mode"] = False
 
-                # ── 2번: 슬라이드 패널 ──
-                panel = f"""
-<style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-*{{margin:0;padding:0;box-sizing:border-box;font-family:'Pretendard',-apple-system,sans-serif;}}
-@keyframes sd{{from{{opacity:0;transform:translateY(-6px)}}to{{opacity:1;transform:translateY(0)}}}}
-.p{{background:#fff;border:1px solid #e2e6ea;border-left:4px solid #008485;border-radius:12px;padding:20px 24px;box-shadow:0 4px 16px rgba(0,132,133,.08);animation:sd .2s ease;}}
-.ph{{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #e2e6ea;}}
-.pn{{font-size:17px;font-weight:800;color:#008485;}}
-.ps{{font-size:12px;color:#8c95a6;margin-top:3px;}}
-.g4{{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;}}
-.g2{{display:grid;grid-template-columns:1fr 1fr;gap:8px;}}
-.c{{padding:10px 12px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;}}
-.ct{{padding:12px 14px;background:linear-gradient(135deg,#e0f2f2,#d4eded);border-radius:8px;border:1px solid #a8d8d8;}}
-.cl{{font-size:10px;font-weight:700;color:#8c95a6;margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em;}}
-.cv{{font-size:14px;font-weight:700;color:#1a1a2e;}}
-.cvp{{font-size:15px;font-weight:800;color:#008485;}}
-.cs{{font-size:12px;color:#8c95a6;margin-top:2px;}}
-.bd{{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}}
-</style>
-<div class="p">
-  <div class="ph">
-    <div><div class="pn">{v("고객명")}</div><div class="ps">고객번호: {c_no} · 사업자번호: {v("사업자번호")}</div></div>
-    <div class="bd">{badge_html(v("개설구분"))} {badge_html(v("관리구분"))} {badge_html(v("연계상태"))}</div>
-  </div>
-  <div class="g4">
-    <div class="c"><div class="cl">구축형태</div><div class="cv">{v("구축형")}</div></div>
-    <div class="c"><div class="cl">구축구분</div><div class="cv">{v("구축구분")}</div></div>
-    <div class="c"><div class="cl">신규접수일</div><div class="cv">{v("신규접수일")}</div></div>
-    <div class="c"><div class="cl">개설/이행일</div><div class="cv">{v("개설이행일")}</div></div>
-  </div>
-  <div class="g2">
-    <div class="ct"><div class="cl" style="color:#006a6b;">영업 담당자</div><div class="cvp">{v("담당자")}</div></div>
-    <div class="c"><div class="cl">고객사 담당자</div><div class="cv">{v("고객담당자")} <span style="font-size:12px;color:#8c95a6;">({v("담당부서")})</span></div><div class="cs">{v("담당연락처")}</div></div>
-  </div>
-</div>"""
-                components.html(panel, height=270, scrolling=False)
+                # 패널 HTML — st.markdown으로 렌더링 (iframe 아님, 바로 적용)
+                st.markdown(f"""
+<div style="background:#fff;border:1px solid #e2e6ea;border-left:4px solid #008485;
+     border-radius:12px;padding:20px 24px;margin-top:10px;
+     box-shadow:0 4px 16px rgba(0,132,133,.08);">
 
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;
+       margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #e2e6ea;">
+    <div>
+      <div style="font-size:17px;font-weight:800;color:#008485;">{v("고객명")}</div>
+      <div style="font-size:12px;color:#8c95a6;margin-top:2px;">
+        고객번호: {c_no} &nbsp;·&nbsp; 사업자번호: {v("사업자번호")}
+      </div>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;">
+      {badge_html(v("개설구분"))}
+      {badge_html(v("관리구분"))}
+      {badge_html(v("연계상태"))}
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;">
+    <div style="padding:10px 12px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
+      <div style="font-size:10px;font-weight:700;color:#8c95a6;text-transform:uppercase;margin-bottom:3px;">구축형태</div>
+      <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("구축형")}</div>
+    </div>
+    <div style="padding:10px 12px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
+      <div style="font-size:10px;font-weight:700;color:#8c95a6;text-transform:uppercase;margin-bottom:3px;">구축구분</div>
+      <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("구축구분")}</div>
+    </div>
+    <div style="padding:10px 12px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
+      <div style="font-size:10px;font-weight:700;color:#8c95a6;text-transform:uppercase;margin-bottom:3px;">신규접수일</div>
+      <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("신규접수일")}</div>
+    </div>
+    <div style="padding:10px 12px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
+      <div style="font-size:10px;font-weight:700;color:#8c95a6;text-transform:uppercase;margin-bottom:3px;">개설/이행일</div>
+      <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("개설이행일")}</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <div style="padding:12px 14px;background:linear-gradient(135deg,#e0f2f2,#d4eded);border-radius:8px;border:1px solid #a8d8d8;">
+      <div style="font-size:10px;font-weight:700;color:#006a6b;text-transform:uppercase;margin-bottom:4px;">영업 담당자</div>
+      <div style="font-size:15px;font-weight:800;color:#008485;">{v("담당자")}</div>
+    </div>
+    <div style="padding:12px 14px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
+      <div style="font-size:10px;font-weight:700;color:#8c95a6;text-transform:uppercase;margin-bottom:4px;">고객사 담당자</div>
+      <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("고객담당자")} <span style="font-size:12px;color:#8c95a6;">({v("담당부서")})</span></div>
+      <div style="font-size:12px;color:#8c95a6;margin-top:2px;">{v("담당연락처")}</div>
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+                # 수정 버튼
                 cb1, _, _ = st.columns([1, 1, 8])
                 with cb1:
                     if st.button("수정", use_container_width=True):
@@ -224,7 +206,7 @@ def render():
                         fld=tl.get('Field',''); ov=tl.get('OldValue',''); nv=tl.get('NewValue','')
                         if fld=="신규등록": dt2=f"고객 신규 등록 ({nv})"; ic="🆕"
                         else: dt2=f"<b>{fld}</b>: <span style='color:#dc2626;text-decoration:line-through;'>{ov}</span> → <span style='color:#16a34a;font-weight:700;'>{nv}</span>"; ic="🔄"
-                        tli += f'<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f1f3f5;"><div style="font-size:15px;min-width:22px;">{ic}</div><div style="flex:1;"><div style="font-size:13px;color:#1a1a2e;">{dt2}</div><div style="font-size:11px;color:#8c95a6;margin-top:2px;">{tl.get("User","")} · {tl.get("Date","")}</div></div></div>'
+                        tli+=f'<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f1f3f5;"><div style="font-size:15px;min-width:22px;">{ic}</div><div style="flex:1;"><div style="font-size:13px;color:#1a1a2e;">{dt2}</div><div style="font-size:11px;color:#8c95a6;margin-top:2px;">{tl.get("User","")} · {tl.get("Date","")}</div></div></div>'
                     components.html(f'<style>*{{margin:0;padding:0;box-sizing:border-box;font-family:"Pretendard",-apple-system,sans-serif}}</style><div style="background:#fff;border-radius:10px;padding:14px 18px;border:1px solid #dfe3e8;">{tli}</div>', height=min(len(tld)*65+40,380), scrolling=True)
                 else:
                     st.info("변경 이력이 없습니다.")
@@ -232,9 +214,9 @@ def render():
                 render_section_title("메모")
                 memos = get_memos_by_customer(c_no)
                 if memos:
-                    mih = ""
+                    mih=""
                     for m in reversed(memos):
-                        mih += f'<div style="background:#fff;padding:12px 16px;margin-bottom:8px;border-radius:8px;border:1px solid #dfe3e8;border-left:3px solid #008485;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #eef1f5;"><span style="font-weight:700;font-size:12px;color:#006a6b;background:#e0f2f2;padding:2px 8px;border-radius:20px;">{m.get("Writer","")}</span><span style="font-size:11px;color:#8c95a6;">{m.get("Date","")}</span></div><div style="font-size:13px;color:#1a1a2e;line-height:1.6;">{m.get("Memo","")}</div></div>'
+                        mih+=f'<div style="background:#fff;padding:12px 16px;margin-bottom:8px;border-radius:8px;border:1px solid #dfe3e8;border-left:3px solid #008485;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #eef1f5;"><span style="font-weight:700;font-size:12px;color:#006a6b;background:#e0f2f2;padding:2px 8px;border-radius:20px;">{m.get("Writer","")}</span><span style="font-size:11px;color:#8c95a6;">{m.get("Date","")}</span></div><div style="font-size:13px;color:#1a1a2e;line-height:1.6;">{m.get("Memo","")}</div></div>'
                     components.html(f'<style>*{{margin:0;padding:0;box-sizing:border-box;font-family:"Pretendard",-apple-system,sans-serif}}</style>{mih}', height=len(memos)*90+10, scrolling=True)
                 with st.form("memo"):
                     mt = st.text_area("메모 내용", height=80, placeholder="메모를 입력하세요...")
@@ -248,11 +230,11 @@ def render():
 
     with tab2:
         render_section_title("신규 고객 등록")
-        cdf = get_current_df(); nc = "3000"
+        cdf=get_current_df(); nc="3000"
         if not cdf.empty and "관리코드" in cdf.columns:
             try:
-                ncc = pd.to_numeric(cdf["관리코드"], errors='coerce').dropna()
-                if not ncc.empty: nc = str(int(ncc.max())+1)
+                ncc=pd.to_numeric(cdf["관리코드"],errors='coerce').dropna()
+                if not ncc.empty: nc=str(int(ncc.max())+1)
             except: pass
         st.info(f"필수 항목(*)을 입력해 주세요. 관리코드는 **{nc}**번으로 자동 배정됩니다.")
         with st.form("reg"):
