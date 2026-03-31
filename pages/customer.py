@@ -11,24 +11,26 @@ from auth import get_user_role
 
 
 def badge(text):
-    """상태값을 컬러 배지 HTML로 변환"""
     t = str(text).strip()
     styles = {
-        "개설완료":      "background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;",
-        "개설대기":      "background:#fef3c7;color:#b45309;border:1px solid #fde68a;",
-        "정상":          "background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;",
-        "해지":          "background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;",
-        "해지예상":      "background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;",
-        "취소":          "background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;",
-        "ERP연계완료":   "background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;",
-        "ERP연계대기":   "background:#fef3c7;color:#b45309;border:1px solid #fde68a;",
-        "ERP연계진행":   "background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;",
-        "ERP연계취소":   "background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;",
-        "ERP 청구완료":  "background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;",
-        "연계청구보류":  "background:#fce7f3;color:#9d174d;border:1px solid #fbcfe8;",
+        "개설완료":     ("background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;", "개설완료"),
+        "개설대기":     ("background:#fef3c7;color:#b45309;border:1px solid #fde68a;", "개설대기"),
+        "정상":         ("background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;", "정상"),
+        "해지":         ("background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;", "해지"),
+        "해지예상":     ("background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;", "해지예상"),
+        "취소":         ("background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;", "취소"),
+        "ERP연계완료":  ("background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;", "ERP연계완료"),
+        "ERP연계대기":  ("background:#fef3c7;color:#b45309;border:1px solid #fde68a;", "ERP연계대기"),
+        "ERP연계진행":  ("background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;", "ERP연계진행"),
+        "ERP연계취소":  ("background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;", "ERP연계취소"),
+        "ERP 청구완료": ("background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;", "ERP 청구완료"),
+        "연계청구보류": ("background:#fce7f3;color:#9d174d;border:1px solid #fbcfe8;", "연계청구보류"),
     }
-    style = styles.get(t, "background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;")
-    return f'<span style="{style}padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;">{t}</span>'
+    if t in styles:
+        style, label = styles[t]
+    else:
+        style, label = "background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;", t
+    return f'<span style="{style}padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;">{label}</span>'
 
 
 def render():
@@ -67,50 +69,53 @@ def render():
             if sel_t and '구축형' in df.columns:
                 df = df[df['구축형'].isin(sel_t)]
 
-            # ── 1번: 상태 배지 컬러 테이블 ──
-            badge_cols = ["개설구분", "연계상태", "관리구분"]
+            # ── 표시 컬럼 ──
             vc = [c for c in ["고객명","고객번호","사업자번호","구축형","담당자","개설구분","연계상태","관리구분","개설이행일"] if c in df.columns]
 
-            th_html = "".join(f'<th>{c}</th>' for c in vc)
-            tr_html = ""
-            for i, (_, row) in enumerate(df[vc].iterrows()):
-                cells = ""
-                for c in vc:
-                    val = str(row[c]) if pd.notna(row[c]) else ""
-                    if c in badge_cols and val and val != "-":
-                        cells += f'<td>{badge(val)}</td>'
-                    else:
-                        cells += f'<td>{val}</td>'
-                tr_html += f'<tr data-row="{i}">{cells}</tr>'
+            # ── 1번: 배지 컬럼 적용한 표시용 df ──
+            df_disp = df[vc].copy()
+            badge_cols = [c for c in ["개설구분","연계상태","관리구분"] if c in df_disp.columns]
 
-            table_html = f"""
-<style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-* {{ margin:0; padding:0; box-sizing:border-box; font-family:'Pretendard',-apple-system,sans-serif; }}
-body {{ background:transparent; }}
-.wrap {{ border:1px solid #e2e6ea; border-radius:10px; overflow:auto; max-height:380px; }}
-table {{ width:100%; border-collapse:collapse; font-size:13px; }}
-thead {{ position:sticky; top:0; z-index:2; }}
-th {{ background:#f4f6f9; padding:10px 14px; text-align:left; font-weight:700; color:#4a5568; font-size:11px; border-bottom:2px solid #e2e6ea; white-space:nowrap; text-transform:uppercase; letter-spacing:0.04em; }}
-td {{ padding:10px 14px; border-bottom:1px solid #f1f3f5; color:#1a1a2e; vertical-align:middle; white-space:nowrap; }}
-tr:hover td {{ background:#f0f9f9; cursor:pointer; }}
-tr.active td {{ background:#e0f2f2 !important; }}
-</style>
-<div class="wrap">
-<table><thead><tr>{th_html}</tr></thead><tbody>{tr_html}</tbody></table>
-</div>
-"""
-            components.html(table_html, height=420, scrolling=False)
+            # Streamlit dataframe에 배지 색상 스타일 적용
+            def style_status(val, col):
+                color_map = {
+                    "개설완료": "#dcfce7", "개설대기": "#fef3c7",
+                    "정상": "#dcfce7", "해지": "#fee2e2", "해지예상": "#fee2e2",
+                    "취소": "#f1f5f9",
+                    "ERP연계완료": "#dbeafe", "ERP연계대기": "#fef3c7",
+                    "ERP연계진행": "#e0f2fe", "ERP연계취소": "#f1f5f9",
+                    "ERP 청구완료": "#dbeafe", "연계청구보류": "#fce7f3",
+                }
+                text_map = {
+                    "개설완료": "#15803d", "개설대기": "#b45309",
+                    "정상": "#15803d", "해지": "#b91c1c", "해지예상": "#b91c1c",
+                    "취소": "#64748b",
+                    "ERP연계완료": "#1d4ed8", "ERP연계대기": "#b45309",
+                    "ERP연계진행": "#0369a1", "ERP연계취소": "#64748b",
+                    "ERP 청구완료": "#1d4ed8", "연계청구보류": "#9d174d",
+                }
+                v = str(val).strip()
+                bg = color_map.get(v, "")
+                fg = text_map.get(v, "")
+                if bg:
+                    return f"background-color:{bg};color:{fg};font-weight:700;border-radius:4px;"
+                return ""
 
-            # Streamlit 선택용 (1px 높이로 숨김)
-            st.markdown('<div style="height:1px;overflow:hidden;opacity:0;">', unsafe_allow_html=True)
+            styled = df_disp.style
+            for bc in badge_cols:
+                styled = styled.applymap(lambda v: style_status(v, bc), subset=[bc])
+
+            # ── Streamlit dataframe (선택 이벤트 연결) ──
             evt = st.dataframe(
-                df[vc], use_container_width=True, hide_index=True,
-                on_select="rerun", selection_mode="single-row", height=1
+                styled,
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                height=400
             )
-            st.markdown('</div>', unsafe_allow_html=True)
 
-            # ── 2번: 슬라이드 패널 상세 ──
+            # ── 2번: 슬라이드 패널 ──
             if len(evt.selection.rows) > 0:
                 sel = df.iloc[evt.selection.rows[0]]
                 def v(k): return sel.get(k, '-')
@@ -120,52 +125,63 @@ tr.active td {{ background:#e0f2f2 !important; }}
                     st.session_state["selected_customer_no"] = c_no
                     st.session_state["edit_mode"] = False
 
-                st.markdown(f"""
-<div style="background:#ffffff;border:1px solid #e2e6ea;border-left:4px solid #008485;
-     border-radius:12px;padding:22px 26px;margin-top:12px;
-     box-shadow:0 4px 16px rgba(0,132,133,0.08);
-     animation:slideDown .2s ease;">
-<style>@keyframes slideDown{{from{{opacity:0;transform:translateY(-6px)}}to{{opacity:1;transform:translateY(0)}}}}</style>
-<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #e2e6ea;">
-  <div>
-    <div style="font-size:18px;font-weight:800;color:#008485;">{v("고객명")}</div>
-    <div style="font-size:12px;color:#8c95a6;margin-top:3px;">고객번호: {c_no} &nbsp;·&nbsp; 사업자번호: {v("사업자번호")}</div>
+                # 슬라이드 패널 HTML
+                panel_html = f"""
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+* {{ margin:0; padding:0; box-sizing:border-box; font-family:'Pretendard',-apple-system,sans-serif; }}
+@keyframes slideDown {{ from{{opacity:0;transform:translateY(-8px)}} to{{opacity:1;transform:translateY(0)}} }}
+.panel {{
+  background:#fff; border:1px solid #e2e6ea; border-left:4px solid #008485;
+  border-radius:12px; padding:22px 26px;
+  box-shadow:0 4px 16px rgba(0,132,133,0.08);
+  animation:slideDown .2s ease;
+}}
+.panel-header {{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid #e2e6ea; }}
+.name {{ font-size:18px; font-weight:800; color:#008485; }}
+.sub {{ font-size:12px; color:#8c95a6; margin-top:3px; }}
+.badges {{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; align-items:center; }}
+.grid4 {{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px; }}
+.grid2 {{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }}
+.cell {{ padding:11px 13px; background:#f7f8fa; border-radius:8px; border:1px solid #e2e6ea; }}
+.cell-teal {{ padding:13px 15px; background:linear-gradient(135deg,#e0f2f2,#d4eded); border-radius:8px; border:1px solid #a8d8d8; }}
+.label {{ font-size:10px; font-weight:700; color:#8c95a6; margin-bottom:4px; text-transform:uppercase; letter-spacing:.06em; }}
+.value {{ font-size:14px; font-weight:700; color:#1a1a2e; }}
+.value-primary {{ font-size:16px; font-weight:800; color:#008485; }}
+.sub-value {{ font-size:12px; color:#8c95a6; margin-top:3px; }}
+</style>
+<div class="panel">
+  <div class="panel-header">
+    <div>
+      <div class="name">{v("고객명")}</div>
+      <div class="sub">고객번호: {c_no} &nbsp;·&nbsp; 사업자번호: {v("사업자번호")}</div>
+    </div>
+    <div class="badges">
+      {badge(v("개설구분"))}
+      {badge(v("관리구분"))}
+      {badge(v("연계상태"))}
+    </div>
   </div>
-  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
-    {badge(v("개설구분"))}&nbsp;{badge(v("관리구분"))}&nbsp;{badge(v("연계상태"))}
+  <div class="grid4">
+    <div class="cell"><div class="label">구축형태</div><div class="value">{v("구축형")}</div></div>
+    <div class="cell"><div class="label">구축구분</div><div class="value">{v("구축구분")}</div></div>
+    <div class="cell"><div class="label">신규접수일</div><div class="value">{v("신규접수일")}</div></div>
+    <div class="cell"><div class="label">개설/이행일</div><div class="value">{v("개설이행일")}</div></div>
+  </div>
+  <div class="grid2">
+    <div class="cell-teal">
+      <div class="label" style="color:#006a6b;">영업 담당자</div>
+      <div class="value-primary">{v("담당자")}</div>
+    </div>
+    <div class="cell">
+      <div class="label">고객사 담당자</div>
+      <div class="value">{v("고객담당자")} <span style="font-size:12px;color:#8c95a6;">({v("담당부서")})</span></div>
+      <div class="sub-value">{v("담당연락처")}</div>
+    </div>
   </div>
 </div>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
-  <div style="padding:11px 13px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
-    <div style="font-size:10px;font-weight:700;color:#8c95a6;margin-bottom:4px;text-transform:uppercase;">구축형태</div>
-    <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("구축형")}</div>
-  </div>
-  <div style="padding:11px 13px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
-    <div style="font-size:10px;font-weight:700;color:#8c95a6;margin-bottom:4px;text-transform:uppercase;">구축구분</div>
-    <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("구축구분")}</div>
-  </div>
-  <div style="padding:11px 13px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
-    <div style="font-size:10px;font-weight:700;color:#8c95a6;margin-bottom:4px;text-transform:uppercase;">신규접수일</div>
-    <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("신규접수일")}</div>
-  </div>
-  <div style="padding:11px 13px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
-    <div style="font-size:10px;font-weight:700;color:#8c95a6;margin-bottom:4px;text-transform:uppercase;">개설/이행일</div>
-    <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("개설이행일")}</div>
-  </div>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-  <div style="padding:13px 15px;background:linear-gradient(135deg,#e0f2f2,#d4eded);border-radius:8px;border:1px solid #a8d8d8;">
-    <div style="font-size:10px;font-weight:800;color:#006a6b;margin-bottom:6px;text-transform:uppercase;">영업 담당자</div>
-    <div style="font-size:16px;font-weight:800;color:#008485;">{v("담당자")}</div>
-  </div>
-  <div style="padding:13px 15px;background:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
-    <div style="font-size:10px;font-weight:800;color:#4a5568;margin-bottom:6px;text-transform:uppercase;">고객사 담당자</div>
-    <div style="font-size:14px;font-weight:700;color:#1a1a2e;">{v("고객담당자")} <span style="font-size:12px;color:#8c95a6;">({v("담당부서")})</span></div>
-    <div style="font-size:12px;color:#8c95a6;margin-top:3px;">{v("담당연락처")}</div>
-  </div>
-</div>
-</div>
-""", unsafe_allow_html=True)
+"""
+                components.html(panel_html, height=300, scrolling=False)
 
                 # 수정 버튼
                 cb1, _, _ = st.columns([1, 1, 8])
@@ -247,11 +263,10 @@ tr.active td {{ background:#e0f2f2 !important; }}
                             dt2 = f"고객 신규 등록 ({nv})"; ic = "🆕"
                         else:
                             dt2 = f"<b>{fld}</b>: <span style='color:#dc2626;text-decoration:line-through;'>{ov}</span> → <span style='color:#16a34a;font-weight:700;'>{nv}</span>"; ic = "🔄"
-                        tli += f'<div style="display:flex;gap:16px;padding:12px 0;border-bottom:1px solid #f1f3f5;"><div style="font-size:16px;min-width:24px;text-align:center;">{ic}</div><div style="flex:1;"><div style="font-size:13px;color:#1a1a2e;line-height:1.5;">{dt2}</div><div style="font-size:11px;color:#8c95a6;margin-top:4px;">{tl.get("User","")} · {tl.get("Date","")}</div></div></div>'
-                    tlh = f'<style>*{{margin:0;padding:0;box-sizing:border-box;font-family:"Pretendard",-apple-system,sans-serif}}</style><div style="background:#fff;border-radius:10px;padding:16px 20px;border:1px solid #dfe3e8;">{tli}</div>'
-                    components.html(tlh, height=min(len(tls)*75+40, 400), scrolling=True)
+                        tli += f'<div style="display:flex;gap:16px;padding:12px 0;border-bottom:1px solid #f1f3f5;"><div style="font-size:16px;min-width:24px;">{ic}</div><div style="flex:1;"><div style="font-size:13px;color:#1a1a2e;">{dt2}</div><div style="font-size:11px;color:#8c95a6;margin-top:3px;">{tl.get("User","")} · {tl.get("Date","")}</div></div></div>'
+                    components.html(f'<style>*{{margin:0;padding:0;box-sizing:border-box;font-family:"Pretendard",-apple-system,sans-serif}}</style><div style="background:#fff;border-radius:10px;padding:16px 20px;border:1px solid #dfe3e8;">{tli}</div>', height=min(len(tls)*70+40, 400), scrolling=True)
                 else:
-                    st.info("변경 이력이 없습니다. 수정 시 자동 기록됩니다.")
+                    st.info("변경 이력이 없습니다.")
 
                 # 메모
                 render_section_title("메모")
@@ -339,7 +354,7 @@ tr.active td {{ background:#e0f2f2 !important; }}
                             st.error(f"실패: {msg2}")
 
     # ══════════════════════════════════════════════
-    # TAB 3 — 삭제 (관리자 전용)
+    # TAB 3 — 삭제
     # ══════════════════════════════════════════════
     if tab3 is not None:
         with tab3:
