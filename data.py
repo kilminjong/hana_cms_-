@@ -12,7 +12,10 @@ import re
 import datetime
 import threading
 import gspread
+import io
 from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 
 from config import (
     GOOGLE_SHEET_URL, SHEET_DATA, SHEET_MEMOS, SHEET_LOGS,
@@ -46,6 +49,98 @@ def get_client():
         except:
             pass
     return None
+
+
+def get_drive_service():
+    """구글 드라이브 API 서비스 객체 반환"""
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    try:
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        return build('drive', 'v3', credentials=creds)
+    except:
+        pass
+    if os.path.exists('service_account.json'):
+        try:
+            creds = Credentials.from_service_account_file('service_account.json', scopes=scopes)
+            return build('drive', 'v3', credentials=creds)
+        except:
+            pass
+    return None
+
+
+def upload_bg_image_to_drive(username, image_bytes, ext):
+    """배경 이미지를 구글 드라이브에 업로드하고 공개 URL 반환"""
+    try:
+        service = get_drive_service()
+        if not service:
+            return None
+
+        mime_map = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
+                    "png": "image/png", "webp": "image/webp"}
+        mime_type = mime_map.get(ext.lower(), "image/jpeg")
+        filename = f"hana_bg_{username}.{ext}"
+
+        # 기존 파일 검색 후 삭제 (덮어쓰기 효과)
+        try:
+            results = service.files().list(
+                q=f"name='{filename}' and trashed=false",
+                fields="files(id)"
+            ).execute()
+            for f in results.get('files', []):
+                service.files().delete(fileId=f['id']).execute()
+        except:
+            pass
+
+        # 업로드
+        media = MediaIoBaseUpload(
+            io.BytesIO(image_bytes),
+            mimetype=mime_type,
+            resumable=True
+        )
+        file_meta = {'name': filename, 'parents': []}
+        uploaded = service.files().create(
+            body=file_meta,
+            media_body=media,
+            fields='id'
+        ).execute()
+
+        file_id = uploaded.get('id')
+        if not file_id:
+            return None
+
+        # 공개 권한 설정
+        service.permissions().create(
+            fileId=file_id,
+            body={'role': 'reader', 'type': 'anyone'}
+        ).execute()
+
+        # 직접 접근 URL 반환
+        url = f"https://drive.google.com/uc?export=view&id={file_id}"
+        return url
+    except Exception as e:
+        return None
+
+
+def delete_bg_image_from_drive(username):
+    """드라이브에서 해당 유저의 배경 이미지 삭제"""
+    try:
+        service = get_drive_service()
+        if not service:
+            return
+        for ext in ['jpg', 'jpeg', 'png', 'webp']:
+            filename = f"hana_bg_{username}.{ext}"
+            results = service.files().list(
+                q=f"name='{filename}' and trashed=false",
+                fields="files(id)"
+            ).execute()
+            for f in results.get('files', []):
+                service.files().delete(fileId=f['id']).execute()
+    except:
+        pass
 
 
 def run_in_background(func, *args, **kwargs):
@@ -452,8 +547,87 @@ def get_users():
         return cached
 
 
+def _get_drive_client():
+    """구글 드라이브 클라이언트 반환"""
+    try:
+        import gspread
+        from google.oauth2.service_account import Credentials
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        try:
+            creds_dict = dict(st.secrets["gcp_service_account"])
+            from google.oauth2.service_account import Credentials as Creds
+            creds = Creds.from_service_account_info(creds_dict, scopes=scopes)
+        except:
+            import os
+            if os.path.exists('service_account.json'):
+                from google.oauth2.service_account import Credentials as Creds
+                creds = Creds.from_service_account_file('service_account.json', scopes=scopes)
+            else:
+                return None
+        from googleapiclient.discovery import build
+        return build('drive', 'v3', credentials=creds)
+    except:
+        return None
+
+
+def upload_bg_to_drive(username, image_bytes, mime_type, filename):
+    """이미지를 구글 드라이브에 업로드하고 공개 URL 반환"""
+    try:
+        from googleapiclient.http import MediaIoBaseUpload
+        import io
+        drive = _get_drive_client()
+        if not drive:
+            return None
+        # 폴더 찾기 또는 생성
+        folder_name = "hana_cms_backgrounds"
+        res = drive.files().list(
+            q=f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+            fields="files(id)"
+        ).execute()
+        if res.get('files'):
+            folder_id = res['files'][0]['id']
+        else:
+            folder_meta = {'name': folder_name, 'mimeType': 'application/vnd.google-apps.folder'}
+            folder = drive.files().create(body=folder_meta, fields='id').execute()
+            folder_id = folder['id']
+        # 기존 유저 배경 이미지 삭제
+        old_res = drive.files().list(
+            q=f"name='{username}_bg' and '{folder_id}' in parents and trashed=false",
+            fields="files(id)"
+        ).execute()
+        for f in old_res.get('files', []):
+            drive.files().delete(fileId=f['id']).execute()
+        # 새 이미지 업로드
+        file_meta = {'name': f'{username}_bg', 'parents': [folder_id]}
+        media = MediaIoBaseUpload(io.BytesIO(image_bytes), mimetype=mime_type)
+        uploaded = drive.files().create(body=file_meta, media_body=media, fields='id').execute()
+        file_id = uploaded['id']
+        # 공개 접근 권한 설정
+        drive.permissions().create(
+            fileId=file_id,
+            body={'type': 'anyone', 'role': 'reader'}
+        ).execute()
+        # 직접 이미지 URL 반환
+        img_url = f"https://drive.google.com/uc?export=view&id={file_id}"
+        return img_url
+    except Exception as e:
+        return None
+
+
 def save_user_bg(username, bg_value):
-    """사용자 배경 설정을 구글시트 users 시트에 저장"""
+    """사용자 배경 설정을 구글시트 users 시트에 저장
+    - 색상값(#xxxxxx): 그대로 저장
+    - 이미지 URL(https://...): 그대로 저장
+    - base64 이미지: 드라이브에 업로드 후 URL 저장
+    """
+    # base64 이미지는 드라이브에 업로드 (여기서는 URL만 받아서 저장)
+    # 실제 base64 업로드는 app.py에서 처리 후 URL을 전달받음
+    val_to_save = str(bg_value)
+    if val_to_save.startswith("data:image"):
+        return False  # base64는 직접 저장 안 함, URL만 저장
     try:
         cl = get_client()
         if not cl:
@@ -461,20 +635,33 @@ def save_user_bg(username, bg_value):
         ws = cl.open_by_url(GOOGLE_SHEET_URL).worksheet(SHEET_USERS)
         records = ws.get_all_records()
         headers = ws.row_values(1)
-        # bg_color 컬럼 없으면 추가
         if 'bg_color' not in headers:
             ws.update_cell(1, len(headers)+1, 'bg_color')
             headers.append('bg_color')
         bg_col = headers.index('bg_color') + 1
-        user_col = headers.index('username') + 1 if 'username' in headers else 1
-        # 해당 유저 행 찾아서 업데이트
         for i, row in enumerate(records):
             if str(row.get('username', '')) == str(username):
-                ws.update_cell(i + 2, bg_col, str(bg_value))
+                ws.update_cell(i + 2, bg_col, val_to_save)
                 return True
         return False
     except:
         return False
+
+
+def get_user_bg(username):
+    """구글시트에서 특정 사용자의 배경색 직접 조회 (캐시 무시)"""
+    try:
+        cl = get_client()
+        if not cl:
+            return ""
+        ws = cl.open_by_url(GOOGLE_SHEET_URL).worksheet(SHEET_USERS)
+        records = ws.get_all_records()
+        for row in records:
+            if str(row.get('username', '')) == str(username):
+                return str(row.get('bg_color', '')).strip()
+        return ""
+    except:
+        return ""
 
 
 # ══════════════════════════════════════════════════

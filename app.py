@@ -11,7 +11,11 @@ from auth import (
     init_session, login_success, logout_user,
     hash_password, check_password, get_user_role, get_visible_menus, add_user
 )
-from data import get_current_df, load_data_from_sheet, analyze_alerts, get_users, log_action, save_user_bg
+from data import (
+    get_current_df, load_data_from_sheet, analyze_alerts,
+    get_users, log_action, save_user_bg, get_user_bg,
+    upload_bg_image_to_drive, delete_bg_image_from_drive
+)
 
 from pages import dashboard as page_dashboard
 from pages import customer as page_customer
@@ -31,13 +35,10 @@ st.set_page_config(
     menu_items={}
 )
 
-# ── 공통 UI 숨김 CSS (배경색 지정 없음 — 배경은 아래서 동적으로 적용)
+# ── 공통 숨김 CSS (배경색 없음 — 동적 적용)
 st.markdown("""
 <style>
-html, body, .stApp {
-  color: #1a1a2e !important;
-  color-scheme: light !important;
-}
+html, body, .stApp { color: #1a1a2e !important; color-scheme: light !important; }
 #MainMenu { visibility: hidden !important; }
 .stDeployButton { display: none !important; }
 [data-testid="manage-app-button"] { display: none !important; }
@@ -58,14 +59,16 @@ if 'login_status' not in st.session_state:
 if 'current_user' not in st.session_state:
     st.session_state['current_user'] = ""
 
+
 # ══════════════════════════════════════════════════
-# 배경 CSS 적용 함수 (sidebar 블록 밖에서 호출)
+# 배경 적용 함수 — sidebar 블록 밖에서 호출
 # ══════════════════════════════════════════════════
 def apply_background(uid):
     bg_key = f"bg_{uid}"
     bg_val = st.session_state.get(bg_key, "#f0f2f5")
 
-    if bg_val.startswith("data:image"):
+    # 드라이브 URL이거나 색상값
+    if bg_val.startswith("http"):
         bg_css = f"""
             background-image: url('{bg_val}') !important;
             background-size: cover !important;
@@ -73,7 +76,16 @@ def apply_background(uid):
             background-position: center center !important;
             background-repeat: no-repeat !important;
             background-color: transparent !important;"""
-        # 이미지일 때는 전환 효과 없이 즉시 적용
+        transition = ""
+    elif bg_val.startswith("data:image"):
+        # base64는 세션에만 임시 적용 (드라이브 업로드 완료 전)
+        bg_css = f"""
+            background-image: url('{bg_val}') !important;
+            background-size: cover !important;
+            background-attachment: fixed !important;
+            background-position: center center !important;
+            background-repeat: no-repeat !important;
+            background-color: transparent !important;"""
         transition = ""
     else:
         bg_css = f"background-color: {bg_val} !important;"
@@ -88,13 +100,11 @@ html, body, .stApp,
     {bg_css}
     {transition}
 }}
-.block-container,
-[data-testid="block-container"] {{
+.block-container, [data-testid="block-container"] {{
     background: transparent !important;
     background-color: transparent !important;
 }}
-[data-testid="stSidebar"],
-[data-testid="stSidebar"] > div {{
+[data-testid="stSidebar"], [data-testid="stSidebar"] > div {{
     background: linear-gradient(180deg, #1a2332 0%, #141c28 100%) !important;
 }}
 </style>""", unsafe_allow_html=True)
@@ -104,39 +114,77 @@ html, body, .stApp,
 # 로그인 화면
 # ══════════════════════════════════════════════════
 if not st.session_state['login_status']:
-    # 로그인 화면 기본 배경
     st.markdown("""<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], .main {
-    background-color: #f0f2f5 !important;
+    background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%) !important;
+    min-height: 100vh !important;
 }
 [data-testid="stSidebar"] { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
-.block-container { max-width: 100% !important; padding-left: 1rem !important; padding-right: 1rem !important; }
+[data-testid="stHeader"] { display: none !important; }
+.block-container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
 [data-testid="stForm"] {
-    background: #ffffff !important; border-radius: 14px !important;
-    padding: 40px 36px 32px !important;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.10) !important;
-    border: 1px solid #e2e6ea !important;
+    background: rgba(255,255,255,0.97) !important;
+    border-radius: 20px !important;
+    padding: 44px 40px 36px !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35) !important;
+    border: none !important;
+}
+.stTextInput > div > div {
+    background: #f8fafc !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
 }
 .stTextInput > div > div > input {
-    background: #ffffff !important; color: #1a1a2e !important;
-    border: 1.5px solid #c1c9d2 !important; border-radius: 6px !important;
-    padding: 10px 14px !important; font-size: 14px !important;
+    background: transparent !important;
+    color: #1a1a2e !important;
+    border: none !important;
+    padding: 11px 14px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
     -webkit-text-fill-color: #1a1a2e !important;
+}
+.stTextInput > div > div:focus-within {
+    border-color: #008485 !important;
+    box-shadow: 0 0 0 3px rgba(0,132,133,0.12) !important;
+    background: #ffffff !important;
+}
+.stTextInput > label { font-size: 13px !important; font-weight: 600 !important; color: #4a5568 !important; }
+div.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #008485, #006a6b) !important;
+    border: none !important; border-radius: 10px !important;
+    padding: 12px !important; font-size: 15px !important;
+    font-weight: 700 !important; letter-spacing: 0.02em !important;
+    box-shadow: 0 4px 15px rgba(0,132,133,0.4) !important;
+}
+div.stButton > button[kind="primary"]:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(0,132,133,0.5) !important;
+}
+div.stButton > button[kind="secondary"] {
+    background: transparent !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    color: #4a5568 !important;
+    font-weight: 600 !important;
 }
 </style>""", unsafe_allow_html=True)
 
-    inject_page_css("login")
-    page_wrapper_open("login")
     if 'auth_mode' not in st.session_state:
         st.session_state['auth_mode'] = 'login'
 
     c1, c2, c3 = st.columns([1.2, 1, 1.2])
     with c2:
-        st.markdown("<div style='height:60px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:40px;'></div>", unsafe_allow_html=True)
         if st.session_state['auth_mode'] == 'login':
             with st.form("login_form"):
-                st.markdown('<div style="text-align:center;margin-bottom:24px;"><div style="font-size:34px;margin-bottom:8px;">📋</div><div style="font-size:22px;font-weight:800;color:#008485;">고객 관리 시스템</div><div style="font-size:13px;color:#8c95a6;margin-top:6px;">업무를 위해 로그인해 주세요</div></div>', unsafe_allow_html=True)
+                st.markdown('''<div style="text-align:center;margin-bottom:32px;">
+  <div style="width:56px;height:56px;background:linear-gradient(135deg,#008485,#006a6b);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;box-shadow:0 8px 24px rgba(0,132,133,0.35);">📋</div>
+  <div style="font-size:22px;font-weight:800;color:#1a1a2e;letter-spacing:-0.02em;">고객 관리 시스템</div>
+  <div style="font-size:13px;color:#8c95a6;margin-top:6px;font-weight:500;">하나은행 CMS · 업무를 위해 로그인해 주세요</div>
+</div>''', unsafe_allow_html=True)
                 id_ = st.text_input("아이디", placeholder="아이디를 입력하세요", autocomplete="username")
                 pw_ = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요", autocomplete="current-password")
                 if st.form_submit_button("로그인", type="primary", use_container_width=True):
@@ -145,10 +193,12 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], 
                         if str(id_) in db and check_password(pw_, db[str(id_)]["password"]):
                             login_success(str(id_), db[str(id_)].get("role", "user"))
                             log_action(str(id_), "Login", "접속")
-                            # 저장된 배경 불러오기
-                            saved_bg = db[str(id_)].get("bg_color", "")
+                            # ★ 구글시트에서 저장된 배경 불러오기
+                            saved_bg = get_user_bg(str(id_))
                             if saved_bg:
                                 st.session_state[f"bg_{str(id_)}"] = saved_bg
+                            else:
+                                st.session_state[f"bg_{str(id_)}"] = "#f0f2f5"
                             st.rerun()
                         else:
                             st.error("아이디 또는 비밀번호가 일치하지 않습니다.")
@@ -158,9 +208,13 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], 
                 st.rerun()
         else:
             with st.form("join_form"):
-                st.markdown('<div style="text-align:center;margin-bottom:24px;"><div style="font-size:34px;margin-bottom:8px;">📋</div><div style="font-size:22px;font-weight:800;color:#008485;">회원가입</div><div style="font-size:13px;color:#8c95a6;margin-top:6px;">관리자에게 인증코드를 발급받은 후 가입하세요</div></div>', unsafe_allow_html=True)
+                st.markdown('''<div style="text-align:center;margin-bottom:32px;">
+  <div style="width:56px;height:56px;background:linear-gradient(135deg,#008485,#006a6b);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;box-shadow:0 8px 24px rgba(0,132,133,0.35);">📋</div>
+  <div style="font-size:22px;font-weight:800;color:#1a1a2e;letter-spacing:-0.02em;">회원가입</div>
+  <div style="font-size:13px;color:#8c95a6;margin-top:6px;font-weight:500;">관리자에게 인증코드를 발급받은 후 가입하세요</div>
+</div>''', unsafe_allow_html=True)
                 n1 = st.text_input("아이디", placeholder="사용할 아이디", autocomplete="off")
-                n2 = st.text_input("비밀번호", type="password", placeholder="비밀번호", autocomplete="new-password")
+                n2 = st.text_input("비밀번호", type="password", placeholder="영문+숫자 8자리 이상", autocomplete="new-password")
                 n3 = st.text_input("인증코드", placeholder="관리자 발급 코드", autocomplete="off")
                 if st.form_submit_button("가입하기", type="primary", use_container_width=True):
                     import re as _re
@@ -193,7 +247,6 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], 
             if st.button("로그인으로 돌아가기", use_container_width=True):
                 st.session_state['auth_mode'] = 'login'
                 st.rerun()
-    page_wrapper_close()
 
 # ══════════════════════════════════════════════════
 # 로그인 후
@@ -212,7 +265,8 @@ else:
     </style>
     """, unsafe_allow_html=True)
 
-    if 'local_df' not in st.session_state or st.session_state.get('local_df') is None or (isinstance(st.session_state.get('local_df'), pd.DataFrame) and st.session_state['local_df'].empty):
+    if 'local_df' not in st.session_state or st.session_state.get('local_df') is None or (
+            isinstance(st.session_state.get('local_df'), pd.DataFrame) and st.session_state['local_df'].empty):
         lp = st.empty()
         lp.markdown('<div style="display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center;"><div style="width:50px;height:50px;border:4px solid #e0f2f2;border-top:4px solid #008485;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:20px;"></div><div style="font-size:16px;font-weight:700;color:#008485;">데이터를 불러오는 중입니다</div></div><style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>', unsafe_allow_html=True)
         df0, msg0 = load_data_from_sheet()
@@ -279,7 +333,8 @@ else:
             bl = f"{icon}  {label}"
             if label == "알림센터" and at > 0:
                 bl = f"{icon}  {label} ({at})"
-            if st.button(bl, use_container_width=True, type="primary" if st.session_state['menu_selection'] == label else "secondary"):
+            if st.button(bl, use_container_width=True,
+                         type="primary" if st.session_state['menu_selection'] == label else "secondary"):
                 set_menu(label)
                 st.rerun()
 
@@ -310,9 +365,10 @@ else:
                     )
                     if st.button("✓", key=f"bgp_{i}", use_container_width=True, help=name):
                         st.session_state[bg_key] = color
-                        save_user_bg(uid, color)
+                        save_user_bg(uid, color)  # 구글시트에 저장
                         st.rerun()
 
+            # 직접 색상
             st.markdown('<p style="color:rgba(255,255,255,0.7);font-size:11px;margin:10px 0 4px;">직접 색상 선택</p>', unsafe_allow_html=True)
             safe_color = current_bg if (current_bg.startswith("#") and len(current_bg) == 7) else "#f0f2f5"
             pc, bc = st.columns([3, 2])
@@ -321,30 +377,48 @@ else:
             with bc:
                 if st.button("적용", key="apply_color", use_container_width=True):
                     st.session_state[bg_key] = picked
-                    save_user_bg(uid, picked)
+                    save_user_bg(uid, picked)  # 구글시트에 저장
                     st.rerun()
 
+            # ★ 이미지 업로드 — 구글 드라이브에 저장
             st.markdown('<p style="color:rgba(255,255,255,0.7);font-size:11px;margin:10px 0 4px;">이미지 업로드</p>', unsafe_allow_html=True)
-            uploaded = st.file_uploader("이미지", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="bg_uploader")
-            if uploaded is not None:
-                # 이미 같은 파일이면 재처리 안 함
-                if st.session_state.get("bg_uploader_name") != uploaded.name:
-                    raw = uploaded.read()
-                    b64 = base64.b64encode(raw).decode()
-                    ext = uploaded.name.rsplit(".", 1)[-1].lower()
-                    img_url = f"data:image/{ext};base64,{b64}"
-                    st.session_state[bg_key] = img_url
-                    st.session_state["bg_uploader_name"] = uploaded.name
-                    save_user_bg(uid, img_url)
-                    # rerun 하지 않고 apply_background를 즉시 다시 호출
-                    apply_background(uid)
-                st.success("✅ 이미지 배경 적용됨")
+            st.markdown('<p style="color:rgba(255,255,255,0.4);font-size:10px;margin:0 0 6px;">구글 드라이브에 저장 → 어느 기기에서도 유지됩니다</p>', unsafe_allow_html=True)
 
+            uploaded = st.file_uploader(
+                "이미지", type=["png", "jpg", "jpeg", "webp"],
+                label_visibility="collapsed", key="bg_uploader"
+            )
+            if uploaded is not None:
+                if st.session_state.get("bg_uploader_name") != uploaded.name:
+                    with st.spinner("드라이브에 업로드 중..."):
+                        raw = uploaded.read()
+                        ext = uploaded.name.rsplit(".", 1)[-1].lower()
+                        # 구글 드라이브에 업로드
+                        drive_url = upload_bg_image_to_drive(uid, raw, ext)
+                        if drive_url:
+                            st.session_state[bg_key] = drive_url
+                            st.session_state["bg_uploader_name"] = uploaded.name
+                            save_user_bg(uid, drive_url)  # 구글시트에 URL 저장
+                            st.success("✅ 저장 완료! 로그인 후에도 유지됩니다")
+                            st.rerun()
+                        else:
+                            # 드라이브 실패 시 세션에만 임시 적용
+                            b64 = base64.b64encode(raw).decode()
+                            img_url = f"data:image/{ext};base64,{b64}"
+                            st.session_state[bg_key] = img_url
+                            st.session_state["bg_uploader_name"] = uploaded.name
+                            st.warning("⚠️ 드라이브 저장 실패. 현재 세션에만 적용됩니다.")
+                            st.rerun()
+
+            # 초기화
             if current_bg != "#f0f2f5":
                 st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
                 if st.button("기본으로 초기화", key="reset_bg", use_container_width=True):
+                    # 드라이브 이미지도 삭제
+                    if current_bg.startswith("http"):
+                        delete_bg_image_from_drive(uid)
                     st.session_state[bg_key] = "#f0f2f5"
-                    save_user_bg(uid, "#f0f2f5")
+                    save_user_bg(uid, "#f0f2f5")  # 구글시트 초기화
                     st.rerun()
 
         st.markdown("---")
