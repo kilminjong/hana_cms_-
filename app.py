@@ -10,7 +10,7 @@ from auth import (
     init_session, login_success, logout_user,
     hash_password, check_password, get_user_role, get_visible_menus, add_user
 )
-from data import get_current_df, load_data_from_sheet, analyze_alerts, get_users, log_action
+from data import get_current_df, load_data_from_sheet, analyze_alerts, get_users, log_action, save_user_bg
 
 from pages import dashboard as page_dashboard
 from pages import customer as page_customer
@@ -129,6 +129,10 @@ if not st.session_state['login_status']:
                         if str(id_) in db and check_password(pw_, db[str(id_)]["password"]):
                             login_success(str(id_), db[str(id_)].get("role", "user"))
                             log_action(str(id_), "Login", "접속")
+                            # 배경색 불러오기
+                            saved_bg = db[str(id_)].get("bg_color", "")
+                            if saved_bg:
+                                st.session_state[f"bg_{str(id_)}"] = saved_bg
                         else:
                             st.error("아이디 또는 비밀번호가 일치하지 않습니다.")
             st.markdown('<div style="text-align:center;margin-top:16px;font-size:13px;color:#8c95a6;">계정이 없으신가요?</div>', unsafe_allow_html=True)
@@ -262,60 +266,81 @@ else:
         st.markdown("---")
 
         # ── 배경 선택 ──
-        with st.expander("🎨 배경 선택"):
-            uid = st.session_state.get('current_user', 'default')
-            bg_key = f"bg_{uid}"
-            current_bg = st.session_state.get(bg_key, "#f0f2f5")
+        uid = st.session_state.get('current_user', 'default')
+        bg_key = f"bg_{uid}"
+        current_bg = st.session_state.get(bg_key, "#f0f2f5")
 
-            st.markdown('<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:8px;">색상 선택</div>', unsafe_allow_html=True)
+        with st.expander("🎨  배경 선택"):
             preset_colors = [
-                ("#f0f2f5","기본 회색"), ("#ffffff","순백색"),
-                ("#e8f4f8","하늘색"), ("#e8f8f0","민트"),
-                ("#f8f0e8","크림"), ("#f0e8f8","라벤더"),
-                ("#1a1a2e","다크"), ("#0f2027","딥다크"),
+                ("#f0f2f5","기본"), ("#ffffff","흰색"),
+                ("#dbeafe","하늘"), ("#dcfce7","민트"),
+                ("#fef3c7","크림"), ("#f3e8ff","라벤더"),
+                ("#1e293b","다크"), ("#0f172a","딥다크"),
             ]
-            cols_bg = st.columns(4)
+            # 프리셋 색상 버튼
+            st.markdown('<p style="color:rgba(255,255,255,0.6);font-size:11px;margin:0 0 6px 0;">프리셋 색상</p>', unsafe_allow_html=True)
+            row1 = st.columns(4)
+            row2 = st.columns(4)
             for i, (color, name) in enumerate(preset_colors):
-                with cols_bg[i % 4]:
-                    border = "3px solid #5ef0f1" if current_bg == color else "2px solid rgba(255,255,255,0.2)"
-                    if st.button("", key=f"bg_preset_{i}", help=name,
-                                 use_container_width=True):
+                col = row1[i] if i < 4 else row2[i-4]
+                is_sel = current_bg == color
+                border = "border:2px solid #5ef0f1;" if is_sel else "border:1px solid rgba(255,255,255,0.15);"
+                with col:
+                    st.markdown(f'<div style="height:32px;background:{color};border-radius:6px;{border}cursor:pointer;margin-bottom:2px;"></div><p style="color:rgba(255,255,255,0.5);font-size:9px;text-align:center;margin:0 0 4px;">{name}</p>', unsafe_allow_html=True)
+                    if st.button("선택", key=f"bgp_{i}", use_container_width=True):
                         st.session_state[bg_key] = color
+                        save_user_bg(uid, color)
                         st.rerun()
-                    st.markdown(f'<div style="width:100%;height:24px;background:{color};border-radius:4px;border:{border};margin-top:-38px;pointer-events:none;"></div>', unsafe_allow_html=True)
 
-            st.markdown('<div style="font-size:11px;color:rgba(255,255,255,0.5);margin:8px 0 4px;">직접 색상 선택</div>', unsafe_allow_html=True)
-            custom_color = st.color_picker("색상", value=current_bg if current_bg.startswith("#") and len(current_bg)==7 else "#f0f2f5", label_visibility="collapsed")
-            if st.button("이 색상 적용", use_container_width=True, key="apply_custom_color"):
-                st.session_state[bg_key] = custom_color
-                st.rerun()
-
-            st.markdown('<div style="font-size:11px;color:rgba(255,255,255,0.5);margin:8px 0 4px;">이미지 업로드</div>', unsafe_allow_html=True)
-            bg_img = st.file_uploader("배경 이미지", type=["png","jpg","jpeg","webp"], label_visibility="collapsed")
-            if bg_img:
-                import base64
-                img_data = base64.b64encode(bg_img.read()).decode()
-                ext = bg_img.name.split(".")[-1]
-                img_url = f"data:image/{ext};base64,{img_data}"
-                st.session_state[bg_key] = img_url
-                st.rerun()
-
-            if current_bg != "#f0f2f5":
-                if st.button("기본값으로 초기화", use_container_width=True, key="reset_bg"):
-                    st.session_state[bg_key] = "#f0f2f5"
+            # 직접 색상
+            st.markdown('<p style="color:rgba(255,255,255,0.6);font-size:11px;margin:8px 0 4px;">직접 색상 선택</p>', unsafe_allow_html=True)
+            safe_color = current_bg if (current_bg.startswith("#") and len(current_bg)==7) else "#f0f2f5"
+            pick_col, btn_col = st.columns([2,1])
+            with pick_col:
+                custom_color = st.color_picker("색상", value=safe_color, label_visibility="collapsed")
+            with btn_col:
+                if st.button("적용", key="apply_color", use_container_width=True):
+                    st.session_state[bg_key] = custom_color
+                    save_user_bg(uid, custom_color)
                     st.rerun()
 
-        # 배경 CSS 적용
-        bg_val = st.session_state.get(f"bg_{st.session_state.get('current_user','default')}", "#f0f2f5")
+            # 이미지 업로드
+            st.markdown('<p style="color:rgba(255,255,255,0.6);font-size:11px;margin:8px 0 4px;">이미지 업로드</p>', unsafe_allow_html=True)
+            bg_img = st.file_uploader("배경 이미지", type=["png","jpg","jpeg","webp"], label_visibility="collapsed", key="bg_uploader")
+            if bg_img is not None:
+                import base64 as _b64
+                img_bytes = bg_img.read()
+                img_data = _b64.b64encode(img_bytes).decode()
+                ext = bg_img.name.split(".")[-1].lower()
+                img_url = f"data:image/{ext};base64,{img_data}"
+                st.session_state[bg_key] = img_url
+                save_user_bg(uid, img_url)
+                st.rerun()
+
+            # 초기화
+            if current_bg != "#f0f2f5":
+                if st.button("기본으로 초기화", key="reset_bg", use_container_width=True):
+                    st.session_state[bg_key] = "#f0f2f5"
+                    save_user_bg(uid, "#f0f2f5")
+                    st.rerun()
+
+        # 배경 CSS — 사이드바 밖 메인 영역에만 적용
+        bg_val = st.session_state.get(bg_key, "#f0f2f5")
         if bg_val.startswith("data:image"):
-            bg_css = f"background-image:url('{bg_val}') !important;background-size:cover !important;background-attachment:fixed !important;background-position:center !important;"
+            bg_css = f"""
+            background-image: url('{bg_val}') !important;
+            background-size: cover !important;
+            background-attachment: fixed !important;
+            background-position: center !important;"""
         else:
-            bg_css = f"background-color:{bg_val} !important;"
+            bg_css = f"background-color: {bg_val} !important;"
         st.markdown(f"""<style>
-html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], .main {{
+[data-testid="stAppViewContainer"] > section:nth-child(2),
+[data-testid="stMain"],
+.main {{
     {bg_css}
 }}
-.block-container {{ background:transparent !important; }}
+.block-container {{ background: transparent !important; }}
 </style>""", unsafe_allow_html=True)
 
         st.markdown("---")

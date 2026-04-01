@@ -131,10 +131,6 @@ def load_data_from_sheet():
             h = str(h).strip()
             if h == "고객사명":
                 h = "고객명"
-            # 슬래시/괄호 포함 컬럼명 정규화
-            h = h.replace("개설/이행일", "개설이행일")
-            h = h.replace("서버pc상세위치(직접기입)", "서버위치")
-            h = h.replace("스케줄사용여부(Y/N)", "스케줄사용여부")
             if not h:
                 h = f"Empty_{len(ch)}"
             if h in seen:
@@ -300,13 +296,7 @@ def get_memos_by_customer(cno):
 # ══════════════════════════════════════════════════
 
 def _build_row_by_headers(hr, dm):
-    def _norm(h):
-        h = str(h).strip()
-        h = h.replace("개설/이행일", "개설이행일")
-        h = h.replace("서버pc상세위치(직접기입)", "서버위치")
-        h = h.replace("스케줄사용여부(Y/N)", "스케줄사용여부")
-        return h.replace(" ", "")
-    ch = [_norm(h) for h in hr]
+    ch = [str(h).strip().replace(" ", "") for h in hr]
     nr = [""] * len(hr)
     for i, cn in enumerate(ch):
         val = ""
@@ -328,13 +318,7 @@ def _sync_gsheet_update_bg(mode, dm):
         return
     try:
         headers = sheet.row_values(DATA_HEADER_ROW)
-        def _norm(h):
-            h = str(h).strip()
-            h = h.replace("개설/이행일", "개설이행일")
-            h = h.replace("서버pc상세위치(직접기입)", "서버위치")
-            h = h.replace("스케줄사용여부(Y/N)", "스케줄사용여부")
-            return h.replace(" ", "")
-        ch = [_norm(h) for h in headers]
+        ch = [str(h).strip().replace(" ", "") for h in headers]
         di = 1
         ci = (ch.index("고객번호") + 1) if "고객번호" in ch else None
         bi = (ch.index("사업자번호") + 1) if "사업자번호" in ch else None
@@ -444,19 +428,53 @@ def update_fast(cno, um):
 
 @st.cache_data(ttl=600, show_spinner=False)
 def get_users():
+    """구글시트에서 사용자 목록 조회 + 세션 캐시 병합"""
+    cached = {}
+    try:
+        cached = st.session_state.get('cached_users', {})
+    except:
+        pass
     try:
         cl = get_client()
         if not cl:
-            return {}
+            return cached
         r = cl.open_by_url(GOOGLE_SHEET_URL).worksheet(SHEET_USERS).get_all_records()
-        return {
+        sheet_users = {
             str(x['username']): {
                 "password": str(x['password']),
-                "role": str(x.get('role', 'user')).strip() or 'user'
+                "role": str(x.get('role', 'user')).strip() or 'user',
+                "bg_color": str(x.get('bg_color', '')).strip()
             } for x in r
         }
+        merged = {**cached, **sheet_users}
+        return merged
     except:
-        return {}
+        return cached
+
+
+def save_user_bg(username, bg_value):
+    """사용자 배경 설정을 구글시트 users 시트에 저장"""
+    try:
+        cl = get_client()
+        if not cl:
+            return False
+        ws = cl.open_by_url(GOOGLE_SHEET_URL).worksheet(SHEET_USERS)
+        records = ws.get_all_records()
+        headers = ws.row_values(1)
+        # bg_color 컬럼 없으면 추가
+        if 'bg_color' not in headers:
+            ws.update_cell(1, len(headers)+1, 'bg_color')
+            headers.append('bg_color')
+        bg_col = headers.index('bg_color') + 1
+        user_col = headers.index('username') + 1 if 'username' in headers else 1
+        # 해당 유저 행 찾아서 업데이트
+        for i, row in enumerate(records):
+            if str(row.get('username', '')) == str(username):
+                ws.update_cell(i + 2, bg_col, str(bg_value))
+                return True
+        return False
+    except:
+        return False
 
 
 # ══════════════════════════════════════════════════
