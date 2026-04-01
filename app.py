@@ -197,15 +197,12 @@ div.stButton > button[kind="secondary"]:hover {
                     with st.spinner("로그인 중..."):
                         db = get_users()
                         if str(id_) in db and check_password(pw_, db[str(id_)]["password"]):
+                            # ★ login_success() 호출 전에 배경 먼저 세션에 저장
+                            # (login_success 내부에서 st.rerun()이 발생하므로 이후 코드는 실행 안 됨)
+                            saved_bg = get_user_bg(str(id_))
+                            st.session_state[f"bg_{str(id_)}"] = saved_bg if saved_bg else "#f0f2f5"
                             login_success(str(id_), db[str(id_)].get("role", "user"))
                             log_action(str(id_), "Login", "접속")
-                            # ★ 구글시트에서 저장된 배경 불러오기
-                            saved_bg = get_user_bg(str(id_))
-                            if saved_bg:
-                                st.session_state[f"bg_{str(id_)}"] = saved_bg
-                            else:
-                                st.session_state[f"bg_{str(id_)}"] = "#f0f2f5"
-                            st.rerun()
                         else:
                             st.error("아이디 또는 비밀번호가 일치하지 않습니다.")
             st.markdown('''
@@ -266,6 +263,11 @@ div.stButton > button[kind="secondary"]:hover {
 else:
     uid = st.session_state.get('current_user', '')
     bg_key = f"bg_{uid}"
+
+    # ★ 세션에 배경값 없으면 구글시트에서 복원 (로그아웃 후 재로그인 대비)
+    if bg_key not in st.session_state:
+        restored = get_user_bg(uid)
+        st.session_state[bg_key] = restored if restored else "#f0f2f5"
 
     # ★ 배경 CSS — sidebar 블록 밖에서 가장 먼저 적용
     apply_background(uid)
