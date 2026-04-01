@@ -23,10 +23,12 @@ CSS_GLOBAL = """<style>
 
 /* ── 라이트모드 강제 ── */
 html, body, .stApp, [data-testid="stAppViewContainer"],
-[data-testid="stMain"], .main, .block-container {
-  background-color: #f0f2f5 !important;
+[data-testid="stMain"], .main {
   color: #1a1a2e !important;
   color-scheme: light !important;
+}
+.block-container {
+  color: #1a1a2e !important;
 }
 
 html, body, [class*="css"] { font-family: var(--font-main) !important; }

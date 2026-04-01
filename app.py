@@ -64,25 +64,37 @@ if 'current_user' not in st.session_state:
 def apply_background(uid):
     bg_key = f"bg_{uid}"
     bg_val = st.session_state.get(bg_key, "#f0f2f5")
+
     if bg_val.startswith("data:image"):
         bg_css = f"""
             background-image: url('{bg_val}') !important;
             background-size: cover !important;
             background-attachment: fixed !important;
-            background-position: center !important;
+            background-position: center center !important;
+            background-repeat: no-repeat !important;
             background-color: transparent !important;"""
+        # 이미지일 때는 전환 효과 없이 즉시 적용
+        transition = ""
     else:
         bg_css = f"background-color: {bg_val} !important;"
+        transition = "transition: background-color 0.3s ease !important;"
 
     st.markdown(f"""<style>
 html, body, .stApp,
 [data-testid="stAppViewContainer"],
 [data-testid="stMain"],
-.main {{
+.main,
+[data-testid="stAppViewContainer"] > section:not([data-testid="stSidebar"]) {{
     {bg_css}
+    {transition}
 }}
-.block-container {{ background: transparent !important; }}
-[data-testid="stSidebar"] {{
+.block-container,
+[data-testid="block-container"] {{
+    background: transparent !important;
+    background-color: transparent !important;
+}}
+[data-testid="stSidebar"],
+[data-testid="stSidebar"] > div {{
     background: linear-gradient(180deg, #1a2332 0%, #141c28 100%) !important;
 }}
 </style>""", unsafe_allow_html=True)
@@ -315,14 +327,18 @@ else:
             st.markdown('<p style="color:rgba(255,255,255,0.7);font-size:11px;margin:10px 0 4px;">이미지 업로드</p>', unsafe_allow_html=True)
             uploaded = st.file_uploader("이미지", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="bg_uploader")
             if uploaded is not None:
-                raw = uploaded.read()
-                b64 = base64.b64encode(raw).decode()
-                ext = uploaded.name.rsplit(".", 1)[-1].lower()
-                img_url = f"data:image/{ext};base64,{b64}"
-                st.session_state[bg_key] = img_url
-                save_user_bg(uid, img_url)
-                st.success("이미지 적용됨!")
-                st.rerun()
+                # 이미 같은 파일이면 재처리 안 함
+                if st.session_state.get("bg_uploader_name") != uploaded.name:
+                    raw = uploaded.read()
+                    b64 = base64.b64encode(raw).decode()
+                    ext = uploaded.name.rsplit(".", 1)[-1].lower()
+                    img_url = f"data:image/{ext};base64,{b64}"
+                    st.session_state[bg_key] = img_url
+                    st.session_state["bg_uploader_name"] = uploaded.name
+                    save_user_bg(uid, img_url)
+                    # rerun 하지 않고 apply_background를 즉시 다시 호출
+                    apply_background(uid)
+                st.success("✅ 이미지 배경 적용됨")
 
             if current_bg != "#f0f2f5":
                 st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
