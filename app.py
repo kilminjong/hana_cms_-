@@ -3,6 +3,7 @@ import streamlit as st
 import datetime
 import time
 import pandas as pd
+import base64
 
 from config import COMPANY_CODE, ADMIN_CODE
 from style import inject_all_css, inject_page_css, page_wrapper_open, page_wrapper_close
@@ -30,11 +31,10 @@ st.set_page_config(
     menu_items={}
 )
 
+# ── 공통 UI 숨김 CSS (배경색 지정 없음 — 배경은 아래서 동적으로 적용)
 st.markdown("""
 <style>
-html, body, .stApp, [data-testid="stAppViewContainer"],
-[data-testid="stMain"], .main, .block-container {
-  background-color: #f0f2f5 !important;
+html, body, .stApp {
   color: #1a1a2e !important;
   color-scheme: light !important;
 }
@@ -44,20 +44,9 @@ html, body, .stApp, [data-testid="stAppViewContainer"],
 [data-testid="stSidebarNav"] { display: none !important; }
 section[data-testid="stSidebarNav"] { display: none !important; }
 footer { visibility: hidden !important; }
-
-/* 상단 헤더 배경 투명하게만 처리 (숨기지 않음) */
-[data-testid="stHeader"] {
-  background: transparent !important;
-}
-/* 상단 여백 최소화 - 헤더 높이 고려 */
-.block-container {
-  padding-top: 3.5rem !important;
-  padding-bottom: 1rem !important;
-}
-/* 사이드바 상단 여백 최소화 */
-[data-testid="stSidebar"] > div:first-child {
-  padding-top: 0.5rem !important;
-}
+[data-testid="stHeader"] { background: transparent !important; }
+.block-container { padding-top: 3.5rem !important; padding-bottom: 1rem !important; }
+[data-testid="stSidebar"] > div:first-child { padding-top: 0.5rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -70,45 +59,60 @@ if 'current_user' not in st.session_state:
     st.session_state['current_user'] = ""
 
 # ══════════════════════════════════════════════════
+# 배경 CSS 적용 함수 (sidebar 블록 밖에서 호출)
+# ══════════════════════════════════════════════════
+def apply_background(uid):
+    bg_key = f"bg_{uid}"
+    bg_val = st.session_state.get(bg_key, "#f0f2f5")
+    if bg_val.startswith("data:image"):
+        bg_css = f"""
+            background-image: url('{bg_val}') !important;
+            background-size: cover !important;
+            background-attachment: fixed !important;
+            background-position: center !important;
+            background-color: transparent !important;"""
+    else:
+        bg_css = f"background-color: {bg_val} !important;"
+
+    st.markdown(f"""<style>
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+.main {{
+    {bg_css}
+}}
+.block-container {{ background: transparent !important; }}
+[data-testid="stSidebar"] {{
+    background: linear-gradient(180deg, #1a2332 0%, #141c28 100%) !important;
+}}
+</style>""", unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════
 # 로그인 화면
 # ══════════════════════════════════════════════════
 if not st.session_state['login_status']:
-    st.markdown("""
-    <style>
-    [data-testid="stSidebar"] { display: none !important; }
-    [data-testid="collapsedControl"] { display: none !important; }
-    section[data-testid="stSidebar"] { display: none !important; }
-    .block-container {
-        max-width: 100% !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-    }
-    [data-testid="stForm"] {
-        background: #ffffff !important;
-        border-radius: 14px !important;
-        padding: 40px 36px 32px !important;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.10) !important;
-        border: 1px solid #e2e6ea !important;
-    }
-    .stTextInput > div > div > input {
-        background: #ffffff !important;
-        color: #1a1a2e !important;
-        border: 1.5px solid #c1c9d2 !important;
-        border-radius: 6px !important;
-        padding: 10px 14px !important;
-        font-size: 14px !important;
-        -webkit-text-fill-color: #1a1a2e !important;
-    }
-    </style>
-    <!-- 브라우저 비밀번호 유출 경고 제거 -->
-    <script>
-    window.addEventListener('load', function() {
-        document.querySelectorAll('input[type="password"]').forEach(function(el) {
-            el.setAttribute('autocomplete', 'new-password');
-        });
-    });
-    </script>
-    """, unsafe_allow_html=True)
+    # 로그인 화면 기본 배경
+    st.markdown("""<style>
+html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], .main {
+    background-color: #f0f2f5 !important;
+}
+[data-testid="stSidebar"] { display: none !important; }
+[data-testid="collapsedControl"] { display: none !important; }
+.block-container { max-width: 100% !important; padding-left: 1rem !important; padding-right: 1rem !important; }
+[data-testid="stForm"] {
+    background: #ffffff !important; border-radius: 14px !important;
+    padding: 40px 36px 32px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10) !important;
+    border: 1px solid #e2e6ea !important;
+}
+.stTextInput > div > div > input {
+    background: #ffffff !important; color: #1a1a2e !important;
+    border: 1.5px solid #c1c9d2 !important; border-radius: 6px !important;
+    padding: 10px 14px !important; font-size: 14px !important;
+    -webkit-text-fill-color: #1a1a2e !important;
+}
+</style>""", unsafe_allow_html=True)
 
     inject_page_css("login")
     page_wrapper_open("login")
@@ -129,10 +133,11 @@ if not st.session_state['login_status']:
                         if str(id_) in db and check_password(pw_, db[str(id_)]["password"]):
                             login_success(str(id_), db[str(id_)].get("role", "user"))
                             log_action(str(id_), "Login", "접속")
-                            # 배경색 불러오기
+                            # 저장된 배경 불러오기
                             saved_bg = db[str(id_)].get("bg_color", "")
                             if saved_bg:
                                 st.session_state[f"bg_{str(id_)}"] = saved_bg
+                            st.rerun()
                         else:
                             st.error("아이디 또는 비밀번호가 일치하지 않습니다.")
             st.markdown('<div style="text-align:center;margin-top:16px;font-size:13px;color:#8c95a6;">계정이 없으신가요?</div>', unsafe_allow_html=True)
@@ -148,12 +153,9 @@ if not st.session_state['login_status']:
                 if st.form_submit_button("가입하기", type="primary", use_container_width=True):
                     import re as _re
                     def validate_pw(pw):
-                        if len(pw) < 8:
-                            return False, "비밀번호는 8자리 이상이어야 합니다."
-                        if not _re.search(r'[A-Za-z]', pw):
-                            return False, "비밀번호에 영문자가 포함되어야 합니다."
-                        if not _re.search(r'[0-9]', pw):
-                            return False, "비밀번호에 숫자가 포함되어야 합니다."
+                        if len(pw) < 8: return False, "비밀번호는 8자리 이상이어야 합니다."
+                        if not _re.search(r'[A-Za-z]', pw): return False, "비밀번호에 영문자가 포함되어야 합니다."
+                        if not _re.search(r'[0-9]', pw): return False, "비밀번호에 숫자가 포함되어야 합니다."
                         return True, "OK"
                     if not n1 or not n2:
                         st.error("아이디와 비밀번호를 입력해 주세요.")
@@ -182,9 +184,15 @@ if not st.session_state['login_status']:
     page_wrapper_close()
 
 # ══════════════════════════════════════════════════
-# 로그인 후 - 사이드바 + 메뉴 라우팅
+# 로그인 후
 # ══════════════════════════════════════════════════
 else:
+    uid = st.session_state.get('current_user', '')
+    bg_key = f"bg_{uid}"
+
+    # ★ 배경 CSS — sidebar 블록 밖에서 가장 먼저 적용
+    apply_background(uid)
+
     st.markdown("""
     <style>
     [data-testid="stSidebar"] { display: flex !important; }
@@ -208,9 +216,9 @@ else:
     def set_menu(m):
         st.session_state['menu_selection'] = m
 
+    # ── 사이드바 ──
     with st.sidebar:
         role = get_user_role()
-        uid = st.session_state.get('current_user', '')
         rl = "관리자" if role == "admin" else "사용자"
         rc = "#5ef0f1" if role == "admin" else "#e2e8f0"
         rb = "rgba(0,132,133,0.25)" if role == "admin" else "rgba(255,255,255,0.08)"
@@ -265,83 +273,63 @@ else:
 
         st.markdown("---")
 
-        # ── 배경 선택 ──
-        uid = st.session_state.get('current_user', 'default')
-        bg_key = f"bg_{uid}"
+        # ── 배경 선택 UI ──
         current_bg = st.session_state.get(bg_key, "#f0f2f5")
 
         with st.expander("🎨  배경 선택"):
-            preset_colors = [
-                ("#f0f2f5","기본"), ("#ffffff","흰색"),
-                ("#dbeafe","하늘"), ("#dcfce7","민트"),
-                ("#fef3c7","크림"), ("#f3e8ff","라벤더"),
-                ("#1e293b","다크"), ("#0f172a","딥다크"),
+            PRESETS = [
+                ("#f0f2f5", "기본"), ("#ffffff", "흰색"),
+                ("#dbeafe", "하늘"), ("#dcfce7", "민트"),
+                ("#fef3c7", "크림"), ("#f3e8ff", "라벤더"),
+                ("#1e293b", "다크"), ("#0f172a", "딥다크"),
             ]
-            # 프리셋 색상 버튼
-            st.markdown('<p style="color:rgba(255,255,255,0.6);font-size:11px;margin:0 0 6px 0;">프리셋 색상</p>', unsafe_allow_html=True)
-            row1 = st.columns(4)
-            row2 = st.columns(4)
-            for i, (color, name) in enumerate(preset_colors):
-                col = row1[i] if i < 4 else row2[i-4]
-                is_sel = current_bg == color
-                border = "border:2px solid #5ef0f1;" if is_sel else "border:1px solid rgba(255,255,255,0.15);"
+            st.markdown('<p style="color:rgba(255,255,255,0.7);font-size:11px;margin:0 0 6px;">프리셋 색상</p>', unsafe_allow_html=True)
+            cols_a = st.columns(4)
+            cols_b = st.columns(4)
+            for i, (color, name) in enumerate(PRESETS):
+                col = cols_a[i] if i < 4 else cols_b[i - 4]
+                selected = (current_bg == color)
+                border_style = "border:2px solid #5ef0f1;" if selected else "border:1px solid rgba(255,255,255,0.2);"
                 with col:
-                    st.markdown(f'<div style="height:32px;background:{color};border-radius:6px;{border}cursor:pointer;margin-bottom:2px;"></div><p style="color:rgba(255,255,255,0.5);font-size:9px;text-align:center;margin:0 0 4px;">{name}</p>', unsafe_allow_html=True)
-                    if st.button("선택", key=f"bgp_{i}", use_container_width=True):
+                    st.markdown(
+                        f'<div style="height:28px;background:{color};border-radius:5px;{border_style}margin-bottom:2px;"></div>'
+                        f'<p style="color:rgba(255,255,255,0.55);font-size:9px;text-align:center;margin:0 0 3px;">{name}</p>',
+                        unsafe_allow_html=True
+                    )
+                    if st.button("✓", key=f"bgp_{i}", use_container_width=True, help=name):
                         st.session_state[bg_key] = color
                         save_user_bg(uid, color)
                         st.rerun()
 
-            # 직접 색상
-            st.markdown('<p style="color:rgba(255,255,255,0.6);font-size:11px;margin:8px 0 4px;">직접 색상 선택</p>', unsafe_allow_html=True)
-            safe_color = current_bg if (current_bg.startswith("#") and len(current_bg)==7) else "#f0f2f5"
-            pick_col, btn_col = st.columns([2,1])
-            with pick_col:
-                custom_color = st.color_picker("색상", value=safe_color, label_visibility="collapsed")
-            with btn_col:
+            st.markdown('<p style="color:rgba(255,255,255,0.7);font-size:11px;margin:10px 0 4px;">직접 색상 선택</p>', unsafe_allow_html=True)
+            safe_color = current_bg if (current_bg.startswith("#") and len(current_bg) == 7) else "#f0f2f5"
+            pc, bc = st.columns([3, 2])
+            with pc:
+                picked = st.color_picker("색상", value=safe_color, label_visibility="collapsed")
+            with bc:
                 if st.button("적용", key="apply_color", use_container_width=True):
-                    st.session_state[bg_key] = custom_color
-                    save_user_bg(uid, custom_color)
+                    st.session_state[bg_key] = picked
+                    save_user_bg(uid, picked)
                     st.rerun()
 
-            # 이미지 업로드
-            st.markdown('<p style="color:rgba(255,255,255,0.6);font-size:11px;margin:8px 0 4px;">이미지 업로드</p>', unsafe_allow_html=True)
-            bg_img = st.file_uploader("배경 이미지", type=["png","jpg","jpeg","webp"], label_visibility="collapsed", key="bg_uploader")
-            if bg_img is not None:
-                import base64 as _b64
-                img_bytes = bg_img.read()
-                img_data = _b64.b64encode(img_bytes).decode()
-                ext = bg_img.name.split(".")[-1].lower()
-                img_url = f"data:image/{ext};base64,{img_data}"
+            st.markdown('<p style="color:rgba(255,255,255,0.7);font-size:11px;margin:10px 0 4px;">이미지 업로드</p>', unsafe_allow_html=True)
+            uploaded = st.file_uploader("이미지", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="bg_uploader")
+            if uploaded is not None:
+                raw = uploaded.read()
+                b64 = base64.b64encode(raw).decode()
+                ext = uploaded.name.rsplit(".", 1)[-1].lower()
+                img_url = f"data:image/{ext};base64,{b64}"
                 st.session_state[bg_key] = img_url
                 save_user_bg(uid, img_url)
+                st.success("이미지 적용됨!")
                 st.rerun()
 
-            # 초기화
             if current_bg != "#f0f2f5":
+                st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
                 if st.button("기본으로 초기화", key="reset_bg", use_container_width=True):
                     st.session_state[bg_key] = "#f0f2f5"
                     save_user_bg(uid, "#f0f2f5")
                     st.rerun()
-
-        # 배경 CSS — 사이드바 밖 메인 영역에만 적용
-        bg_val = st.session_state.get(bg_key, "#f0f2f5")
-        if bg_val.startswith("data:image"):
-            bg_css = f"""
-            background-image: url('{bg_val}') !important;
-            background-size: cover !important;
-            background-attachment: fixed !important;
-            background-position: center !important;"""
-        else:
-            bg_css = f"background-color: {bg_val} !important;"
-        st.markdown(f"""<style>
-[data-testid="stAppViewContainer"] > section:nth-child(2),
-[data-testid="stMain"],
-.main {{
-    {bg_css}
-}}
-.block-container {{ background: transparent !important; }}
-</style>""", unsafe_allow_html=True)
 
         st.markdown("---")
         if st.button("데이터 최신화", use_container_width=True):
@@ -353,6 +341,7 @@ else:
         if st.button("로그아웃", use_container_width=True):
             logout_user()
 
+    # ── 메뉴 라우팅 ──
     menu = st.session_state['menu_selection']
     if menu == "메인화면":        page_dashboard.render()
     elif menu == "고객 관리":     page_customer.render()
