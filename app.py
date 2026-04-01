@@ -164,11 +164,17 @@ div.stButton > button[kind="primary"]:hover {
     box-shadow: 0 6px 20px rgba(0,132,133,0.5) !important;
 }
 div.stButton > button[kind="secondary"] {
-    background: transparent !important;
+    background: #f8fafc !important;
     border: 1.5px solid #e2e8f0 !important;
     border-radius: 10px !important;
-    color: #4a5568 !important;
+    color: #374151 !important;
     font-weight: 600 !important;
+    font-size: 14px !important;
+}
+div.stButton > button[kind="secondary"]:hover {
+    background: #f0f4f8 !important;
+    border-color: #008485 !important;
+    color: #008485 !important;
 }
 </style>""", unsafe_allow_html=True)
 
@@ -202,8 +208,11 @@ div.stButton > button[kind="secondary"] {
                             st.rerun()
                         else:
                             st.error("아이디 또는 비밀번호가 일치하지 않습니다.")
-            st.markdown('<div style="text-align:center;margin-top:16px;font-size:13px;color:#8c95a6;">계정이 없으신가요?</div>', unsafe_allow_html=True)
-            if st.button("회원가입", use_container_width=True):
+            st.markdown('''
+<div style="margin-top:20px;padding-top:18px;border-top:1px solid #f0f0f0;text-align:center;">
+  <span style="font-size:13px;color:#8c95a6;">계정이 없으신가요?</span>
+</div>''', unsafe_allow_html=True)
+            if st.button("회원가입하기", use_container_width=True, key="goto_join"):
                 st.session_state['auth_mode'] = 'join'
                 st.rerun()
         else:
@@ -243,8 +252,11 @@ div.stButton > button[kind="secondary"] {
                             st.rerun()
                         else:
                             st.error("인증코드가 올바르지 않습니다.")
-            st.markdown('<div style="text-align:center;margin-top:16px;font-size:13px;color:#8c95a6;">이미 계정이 있으신가요?</div>', unsafe_allow_html=True)
-            if st.button("로그인으로 돌아가기", use_container_width=True):
+            st.markdown('''
+<div style="margin-top:20px;padding-top:18px;border-top:1px solid #f0f0f0;text-align:center;">
+  <span style="font-size:13px;color:#8c95a6;">이미 계정이 있으신가요?</span>
+</div>''', unsafe_allow_html=True)
+            if st.button("로그인으로 돌아가기", use_container_width=True, key="goto_login"):
                 st.session_state['auth_mode'] = 'login'
                 st.rerun()
 

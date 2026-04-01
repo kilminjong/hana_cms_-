@@ -639,9 +639,15 @@ def save_user_bg(username, bg_value):
             ws.update_cell(1, len(headers)+1, 'bg_color')
             headers.append('bg_color')
         bg_col = headers.index('bg_color') + 1
+        col_letter = chr(64 + bg_col)  # 컬럼 문자 변환 (A, B, C...)
         for i, row in enumerate(records):
             if str(row.get('username', '')) == str(username):
-                ws.update_cell(i + 2, bg_col, val_to_save)
+                # RAW 입력으로 URL이 하이퍼링크로 변환되지 않게 처리
+                ws.update(
+                    f"{col_letter}{i + 2}",
+                    [[val_to_save]],
+                    value_input_option='RAW'
+                )
                 return True
         return False
     except:
@@ -649,16 +655,25 @@ def save_user_bg(username, bg_value):
 
 
 def get_user_bg(username):
-    """구글시트에서 특정 사용자의 배경색 직접 조회 (캐시 무시)"""
+    """구글시트에서 특정 사용자의 배경색 직접 조회 (RAW, 캐시 무시)"""
     try:
         cl = get_client()
         if not cl:
             return ""
         ws = cl.open_by_url(GOOGLE_SHEET_URL).worksheet(SHEET_USERS)
-        records = ws.get_all_records()
-        for row in records:
-            if str(row.get('username', '')) == str(username):
-                return str(row.get('bg_color', '')).strip()
+        # get_all_values로 RAW 값 읽기 (하이퍼링크 자동변환 방지)
+        all_values = ws.get_all_values()
+        if not all_values:
+            return ""
+        headers = [str(h).strip() for h in all_values[0]]
+        if 'username' not in headers or 'bg_color' not in headers:
+            return ""
+        user_col = headers.index('username')
+        bg_col = headers.index('bg_color')
+        for row in all_values[1:]:
+            if len(row) > user_col and str(row[user_col]).strip() == str(username).strip():
+                val = str(row[bg_col]).strip() if len(row) > bg_col else ""
+                return val
         return ""
     except:
         return ""
