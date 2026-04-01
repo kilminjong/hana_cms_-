@@ -408,10 +408,15 @@ else:
                         # 구글 드라이브에 업로드
                         drive_url = upload_bg_image_to_drive(uid, raw, ext)
                         if drive_url:
+                            # 구글시트에 URL 저장
+                            saved = save_user_bg(uid, drive_url)
                             st.session_state[bg_key] = drive_url
                             st.session_state["bg_uploader_name"] = uploaded.name
-                            save_user_bg(uid, drive_url)  # 구글시트에 URL 저장
-                            st.success("✅ 저장 완료! 로그인 후에도 유지됩니다")
+                            if saved:
+                                st.success("✅ 저장 완료! 로그인 후에도 유지됩니다")
+                            else:
+                                err = st.session_state.get('_bg_save_error', '알 수 없음')
+                                st.warning(f"⚠️ 드라이브 업로드는 성공했으나 시트 저장 실패: {err}")
                             st.rerun()
                         else:
                             # 드라이브 실패 시 세션에만 임시 적용
@@ -419,7 +424,7 @@ else:
                             img_url = f"data:image/{ext};base64,{b64}"
                             st.session_state[bg_key] = img_url
                             st.session_state["bg_uploader_name"] = uploaded.name
-                            st.warning("⚠️ 드라이브 저장 실패. 현재 세션에만 적용됩니다.")
+                            st.warning("⚠️ 드라이브 업로드 실패. 현재 세션에만 적용됩니다.")
                             st.rerun()
 
             # 초기화

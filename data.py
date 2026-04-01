@@ -618,39 +618,41 @@ def upload_bg_to_drive(username, image_bytes, mime_type, filename):
 
 
 def save_user_bg(username, bg_value):
-    """사용자 배경 설정을 구글시트 users 시트에 저장
-    - 색상값(#xxxxxx): 그대로 저장
-    - 이미지 URL(https://...): 그대로 저장
-    - base64 이미지: 드라이브에 업로드 후 URL 저장
-    """
-    # base64 이미지는 드라이브에 업로드 (여기서는 URL만 받아서 저장)
-    # 실제 base64 업로드는 app.py에서 처리 후 URL을 전달받음
+    """사용자 배경 설정을 구글시트 users 시트에 저장"""
     val_to_save = str(bg_value)
+    # base64 raw 이미지는 저장 불가 (크기 초과) — URL만 저장
     if val_to_save.startswith("data:image"):
-        return False  # base64는 직접 저장 안 함, URL만 저장
+        return False
     try:
         cl = get_client()
         if not cl:
             return False
         ws = cl.open_by_url(GOOGLE_SHEET_URL).worksheet(SHEET_USERS)
-        records = ws.get_all_records()
-        headers = ws.row_values(1)
+        # RAW로 헤더 읽기
+        all_vals = ws.get_all_values()
+        if not all_vals:
+            return False
+        headers = [str(h).strip() for h in all_vals[0]]
+        # bg_color 컬럼 없으면 추가
         if 'bg_color' not in headers:
-            ws.update_cell(1, len(headers)+1, 'bg_color')
+            new_col = len(headers) + 1
+            ws.update_cell(1, new_col, 'bg_color')
             headers.append('bg_color')
-        bg_col = headers.index('bg_color') + 1
-        col_letter = chr(64 + bg_col)  # 컬럼 문자 변환 (A, B, C...)
-        for i, row in enumerate(records):
-            if str(row.get('username', '')) == str(username):
-                # RAW 입력으로 URL이 하이퍼링크로 변환되지 않게 처리
-                ws.update(
-                    f"{col_letter}{i + 2}",
-                    [[val_to_save]],
-                    value_input_option='RAW'
-                )
+        bg_col_idx = headers.index('bg_color') + 1  # 1-based
+        user_col_idx = headers.index('username') if 'username' in headers else 0
+        # 해당 유저 행 찾기
+        for i, row in enumerate(all_vals[1:], start=2):
+            if len(row) > user_col_idx and str(row[user_col_idx]).strip() == str(username).strip():
+                cell_addr = f"{col_to_letter(bg_col_idx)}{i}"
+                ws.update(cell_addr, [[val_to_save]], value_input_option='RAW')
                 return True
         return False
-    except:
+    except Exception as e:
+        import streamlit as _st
+        try:
+            _st.session_state['_bg_save_error'] = str(e)
+        except:
+            pass
         return False
 
 
