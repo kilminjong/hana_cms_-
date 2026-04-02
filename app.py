@@ -114,136 +114,166 @@ html, body, .stApp,
 # 로그인 화면
 # ══════════════════════════════════════════════════
 if not st.session_state['login_status']:
+    # 로그인 화면 CSS — stForm 숨기고 좌우 분할 카드로 구성
     st.markdown("""<style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], .main {
-    background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 50%, #16202c 100%) !important;
+
+/* 전체 배경 */
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"], .main {
+    background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 60%, #0d1b2a 100%) !important;
     min-height: 100vh !important;
 }
-[data-testid="stSidebar"] { display: none !important; }
+[data-testid="stSidebar"]    { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
-[data-testid="stHeader"] { display: none !important; }
+[data-testid="stHeader"]     { display: none !important; }
 .block-container {
-    max-width: 860px !important;
-    padding: 0 !important;
+    max-width: 900px !important;
+    padding-top: 8vh !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
     margin: 0 auto !important;
 }
-/* 폼 숨김 (직접 HTML로 구성) */
+
+/* stForm 테두리/배경 제거 — 카드는 직접 HTML로 */
 [data-testid="stForm"] {
     background: transparent !important;
     border: none !important;
     padding: 0 !important;
     box-shadow: none !important;
+    border-radius: 0 !important;
 }
-/* 로그인 입력 필드 */
-.login-wrap .stTextInput > div > div {
-    background: rgba(255,255,255,0.08) !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
+
+/* 오른쪽 패널 입력 필드 */
+.stTextInput > div > div {
+    background: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
     border-radius: 8px !important;
+    overflow: hidden !important;
 }
-.login-wrap .stTextInput > div > div > input {
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
+.stTextInput > div > div > input {
+    background: transparent !important;
+    color: #111827 !important;
+    border: none !important;
+    box-shadow: none !important;
     font-size: 14px !important;
-    padding: 10px 14px !important;
+    padding: 10px 13px !important;
+    -webkit-text-fill-color: #111827 !important;
 }
-.login-wrap .stTextInput > div > div > input::placeholder {
-    color: rgba(255,255,255,0.35) !important;
-    -webkit-text-fill-color: rgba(255,255,255,0.35) !important;
+.stTextInput > div > div:focus-within {
+    border-color: #008485 !important;
+    box-shadow: 0 0 0 2px rgba(0,132,133,0.15) !important;
+    background: #ffffff !important;
 }
-.login-wrap .stTextInput > div > div:focus-within {
-    border-color: rgba(0,212,213,0.6) !important;
-    background: rgba(255,255,255,0.12) !important;
-    box-shadow: 0 0 0 3px rgba(0,212,213,0.1) !important;
+.stTextInput > div > div > input::placeholder {
+    color: #9ca3af !important;
+    -webkit-text-fill-color: #9ca3af !important;
 }
-.login-wrap .stTextInput > label {
-    color: rgba(255,255,255,0.65) !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
+.stTextInput > label {
+    color: #374151 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
 }
-.login-wrap .stTextInput > div > div > button {
-    color: rgba(255,255,255,0.5) !important;
+.stTextInput > div > div > button {
+    background: transparent !important;
+    border: none !important;
+    color: #9ca3af !important;
 }
-/* 로그인 버튼 */
-.login-wrap div.stButton > button[kind="primary"] {
+
+/* 버튼 */
+div.stButton > button[kind="primary"] {
     background: #008485 !important;
     border: none !important;
     border-radius: 8px !important;
     font-size: 14px !important;
     font-weight: 600 !important;
     height: 44px !important;
+    color: #ffffff !important;
     letter-spacing: 0.01em !important;
 }
-.login-wrap div.stButton > button[kind="primary"]:hover {
+div.stButton > button[kind="primary"]:hover {
     background: #006a6b !important;
 }
-.login-wrap div.stButton > button[kind="secondary"] {
-    background: rgba(255,255,255,0.07) !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
+div.stButton > button[kind="secondary"] {
+    background: #f3f4f6 !important;
+    border: 1px solid #e5e7eb !important;
     border-radius: 8px !important;
-    color: rgba(255,255,255,0.7) !important;
+    color: #374151 !important;
     font-size: 13.5px !important;
+    font-weight: 500 !important;
     height: 42px !important;
 }
-.login-wrap div.stButton > button[kind="secondary"]:hover {
-    background: rgba(255,255,255,0.12) !important;
-    border-color: rgba(0,212,213,0.5) !important;
-    color: #fff !important;
+div.stButton > button[kind="secondary"]:hover {
+    border-color: #008485 !important;
+    color: #008485 !important;
+    background: #f0fafa !important;
 }
 </style>""", unsafe_allow_html=True)
 
     if 'auth_mode' not in st.session_state:
         st.session_state['auth_mode'] = 'login'
 
-    # 전체 화면 세로 중앙 정렬
-    st.markdown("<div style='height:10vh;'></div>", unsafe_allow_html=True)
+    # 좌우 분할 — 왼쪽 브랜드 패널 + 오른쪽 폼
+    left_col, right_col = st.columns([11, 13], gap="small")
 
-    # 좌우 분할 카드
-    left_col, right_col = st.columns([1, 1], gap="small")
-
+    # ── 왼쪽: 브랜드 패널 ──
     with left_col:
         st.markdown("""
 <div style="
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px 0 0 16px;
-    padding: 48px 40px;
-    min-height: 480px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 44px 36px;
+    min-height: 460px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    box-sizing: border-box;
 ">
     <div>
-        <div style="font-size:10px;font-weight:700;color:rgba(0,212,213,0.8);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:16px;">HANA BANK CMS</div>
-        <div style="font-size:28px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;margin-bottom:16px;line-height:1.2;">고객 관리<br>시스템</div>
-        <div style="font-size:13.5px;color:rgba(255,255,255,0.55);line-height:1.8;margin-bottom:36px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.18em;
+                    color:rgba(0,212,213,0.75);text-transform:uppercase;margin-bottom:18px;">
+            HANA BANK CMS
+        </div>
+        <div style="font-size:30px;font-weight:800;color:#ffffff;
+                    line-height:1.2;letter-spacing:-0.02em;margin-bottom:18px;">
+            고객 관리<br>시스템
+        </div>
+        <div style="font-size:13.5px;color:rgba(255,255,255,0.5);line-height:1.9;">
             고객 정보를 체계적으로 관리하고<br>
             ERP 연계 현황을 실시간으로<br>
             모니터링하세요.
         </div>
     </div>
-    <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:16px 18px;">
+    <div style="
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin-top: 36px;
+    ">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-            <div style="width:20px;height:20px;background:rgba(0,212,213,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;">🔒</div>
+            <span style="font-size:15px;">🔒</span>
             <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);">안전한 내부 접속</span>
         </div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.4);line-height:1.6;padding-left:30px;">
+        <div style="font-size:12px;color:rgba(255,255,255,0.4);line-height:1.7;padding-left:25px;">
             인증된 담당자만 고객 정보와<br>청구 데이터를 조회할 수 있습니다.
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
+    # ── 오른쪽: 로그인/회원가입 폼 ──
     with right_col:
-        st.markdown('<div class="login-wrap">', unsafe_allow_html=True)
+        # 흰 카드 배경
         st.markdown("""
 <div style="
-    background: #f8fafc;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-left: none;
-    border-radius: 0 16px 16px 0;
-    padding: 48px 40px;
-    min-height: 480px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 44px 40px 36px;
+    min-height: 460px;
+    box-sizing: border-box;
 ">
 """, unsafe_allow_html=True)
 
@@ -258,18 +288,22 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], 
                 id_ = st.text_input("아이디", placeholder="아이디를 입력하세요", autocomplete="username")
                 pw_ = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요", autocomplete="current-password")
                 st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
-                if st.form_submit_button("🔐  로그인", type="primary", use_container_width=True):
-                    with st.spinner("확인 중..."):
+                if st.form_submit_button("로그인", type="primary", use_container_width=True):
+                    with st.spinner("로그인 중..."):
                         db = get_users()
                         if str(id_) in db and check_password(pw_, db[str(id_)]["password"]):
                             saved_bg = get_user_bg(str(id_))
-                            st.session_state[f"bg_{str(id_)}"] = saved_bg if saved_bg else "#f4f6f8"
+                            st.session_state[f"bg_{str(id_)}"] = saved_bg if saved_bg else "#f0f2f5"
                             login_success(str(id_), db[str(id_)].get("role", "user"))
                             log_action(str(id_), "Login", "접속")
                         else:
                             st.error("아이디 또는 비밀번호가 일치하지 않습니다.")
-            st.markdown('<div style="margin-top:16px;text-align:center;font-size:13px;color:#9ca3af;">계정이 없으신가요? </div>', unsafe_allow_html=True)
-            if st.button("회원가입", use_container_width=True, key="goto_join"):
+            st.markdown("""
+<div style="margin-top:16px;text-align:center;font-size:13px;color:#9ca3af;">
+    계정이 없으신가요?
+</div>
+""", unsafe_allow_html=True)
+            if st.button("회원가입하기", use_container_width=True, key="goto_join"):
                 st.session_state['auth_mode'] = 'join'
                 st.rerun()
         else:
@@ -311,13 +345,16 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], 
                             st.rerun()
                         else:
                             st.error("인증코드가 올바르지 않습니다.")
-            st.markdown('<div style="margin-top:16px;text-align:center;font-size:13px;color:#9ca3af;">이미 계정이 있으신가요?</div>', unsafe_allow_html=True)
+            st.markdown("""
+<div style="margin-top:16px;text-align:center;font-size:13px;color:#9ca3af;">
+    이미 계정이 있으신가요?
+</div>
+""", unsafe_allow_html=True)
             if st.button("로그인으로 돌아가기", use_container_width=True, key="goto_login"):
                 st.session_state['auth_mode'] = 'login'
                 st.rerun()
 
         st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════
 # 로그인 후
@@ -367,13 +404,15 @@ else:
         rbd = "rgba(0,132,133,0.4)" if role == "admin" else "rgba(255,255,255,0.1)"
 
         st.markdown(f'''
-        <div style="padding:20px 16px 14px;">
-          <div style="font-size:9px;font-weight:700;color:rgba(0,212,213,0.7);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:6px;">HANA BANK CMS</div>
-          <div style="font-size:16px;font-weight:700;color:#e2e8f0;">고객관리시스템</div>
+        <div style="padding:12px 0 8px;text-align:center;">
+          <div style="width:38px;height:38px;background:linear-gradient(135deg,#008485,#006a6b);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:18px;">📋</div>
+          <div style="font-size:13px;font-weight:700;color:#e2e8f0!important;">고객 관리 시스템</div>
         </div>
-        <div style="margin:0 12px 12px;padding:12px 14px;background:{rb};border-radius:8px;border:1px solid {rbd};">
-          <div style="font-size:14px;font-weight:700;color:{rc}!important;margin-bottom:2px;">{uid}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.4)!important;">{rl}</div>
+        <div style="margin:4px 10px 6px;padding:10px 12px;background:{rb};border-radius:8px;border:1px solid {rbd};">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-size:15px;font-weight:800;color:{rc}!important;">{uid}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.5)!important;background:rgba(255,255,255,0.08);padding:2px 7px;border-radius:20px;">{rl}</div>
+          </div>
         </div>
         ''', unsafe_allow_html=True)
 
