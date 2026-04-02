@@ -136,12 +136,9 @@ html, body, .stApp,
     margin: 0 auto !important;
 }
 
-/* stForm 완전 투명 — html body 상위 선택자로 최고 우선순위 확보 */
-html body [data-testid="stForm"],
-html body div [data-testid="stForm"],
-html body section [data-testid="stForm"] {
+/* stForm 테두리/배경 제거 — 카드는 직접 HTML로 */
+[data-testid="stForm"] {
     background: transparent !important;
-    background-color: transparent !important;
     border: none !important;
     padding: 0 !important;
     box-shadow: none !important;
@@ -268,21 +265,20 @@ div.stButton > button[kind="secondary"]:hover {
 """, unsafe_allow_html=True)
 
     # ── 오른쪽: 로그인/회원가입 폼 ──
-    with right_col:
-        # 흰 카드 배경
-        st.markdown("""
-<div style="
+    # CSS로 right_col에 흰 카드 배경 적용 (div 열고 닫기 방식 사용 안 함)
+    st.markdown("""<style>
+[data-testid="column"]:nth-of-type(2) > div:first-child {
     background: #ffffff;
     border-radius: 16px;
-    padding: 44px 40px 36px;
+    padding: 40px 36px 32px !important;
     min-height: 460px;
-    box-sizing: border-box;
-">
-""", unsafe_allow_html=True)
+}
+</style>""", unsafe_allow_html=True)
 
+    with right_col:
         if st.session_state['auth_mode'] == 'login':
             st.markdown("""
-<div style="margin-bottom:28px;">
+<div style="margin-bottom:24px;">
     <div style="font-size:20px;font-weight:700;color:#111827;margin-bottom:6px;">로그인</div>
     <div style="font-size:13px;color:#9ca3af;">담당자 계정으로 로그인해 주세요</div>
 </div>
@@ -356,8 +352,6 @@ div.stButton > button[kind="secondary"]:hover {
             if st.button("로그인으로 돌아가기", use_container_width=True, key="goto_login"):
                 st.session_state['auth_mode'] = 'login'
                 st.rerun()
-
-        st.markdown("</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════
 # 로그인 후
