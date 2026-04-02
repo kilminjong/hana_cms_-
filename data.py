@@ -224,16 +224,16 @@ def load_data_from_sheet():
         seen = {}
         def _norm_col(h):
             h = str(h).strip()
-            if h == "고객사명": h = "고객명"
-            if "개설" in h and "이행" in h: h = "개설이행일"
-            if "서버" in h and ("위치" in h or "pc" in h.lower()): h = "서버위치"
-            if "스케줄" in h and "사용" in h: h = "스케줄사용여부"
-            if h.replace(" ","") in ("ERPDB","ERP_DB","ERP/DB"): h = "ERPDB"
-            if "ERP" in h and "회사" in h: h = "ERP회사"
-            if "ERP" in h and "종류" in h: h = "ERP종류"
-            if "고객" in h and "담당" in h and "연락" not in h: h = "고객담당자"
-            if "담당" in h and "부서" in h: h = "담당부서"
-            if "담당" in h and "연락" in h: h = "담당연락처"
+            if h == "고객사명":                             return "고객명"
+            if "개설" in h and "이행" in h:                return "개설이행일"
+            if "서버" in h and ("위치" in h or "pc" in h.lower()): return "서버위치"
+            if "스케줄" in h and "사용" in h:              return "스케줄사용여부"
+            if h.replace(" ","") in ("ERPDB","ERP_DB","ERP/DB"): return "ERPDB"
+            if "ERP" in h and "회사" in h:                 return "ERP회사"
+            if "ERP" in h and "종류" in h:                 return "ERP종류"
+            if "고객" in h and "담당" in h and "연락" not in h: return "고객담당자"
+            if "담당" in h and "부서" in h:                return "담당부서"
+            if "담당" in h and "연락" in h:                return "담당연락처"
             return h
 
         for h in headers:
@@ -403,17 +403,17 @@ def get_memos_by_customer(cno):
 # ══════════════════════════════════════════════════
 
 def _norm_header(h):
-    """구글시트 헤더 정규화 — 특수문자/공백/변형 모두 처리"""
+    """구글시트 헤더 → 프로그램 키 정규화"""
     h = str(h).strip()
-    if "개설" in h and "이행" in h: h = "개설이행일"
-    if "서버" in h and ("위치" in h or "pc" in h.lower()): h = "서버위치"
-    if "스케줄" in h and "사용" in h: h = "스케줄사용여부"
-    if h.replace(" ","") in ("ERPDB","ERP_DB","ERP/DB"): h = "ERPDB"
-    if "ERP" in h and "회사" in h: h = "ERP회사"
-    if "ERP" in h and "종류" in h: h = "ERP종류"
-    if "고객" in h and "담당" in h and "연락" not in h: h = "고객담당자"
-    if "담당" in h and "부서" in h: h = "담당부서"
-    if "담당" in h and "연락" in h: h = "담당연락처"
+    if "개설" in h and "이행" in h:                return "개설이행일"
+    if "서버" in h and ("위치" in h or "pc" in h.lower()): return "서버위치"
+    if "스케줄" in h and "사용" in h:              return "스케줄사용여부"
+    if h.replace(" ","") in ("ERPDB","ERP_DB","ERP/DB"): return "ERPDB"
+    if "ERP" in h and "회사" in h:                 return "ERP회사"
+    if "ERP" in h and "종류" in h:                 return "ERP종류"
+    if "고객" in h and "담당" in h and "연락" not in h: return "고객담당자"
+    if "담당" in h and "부서" in h:                return "담당부서"
+    if "담당" in h and "연락" in h:                return "담당연락처"
     return h.replace(" ", "")
 
 
@@ -422,15 +422,9 @@ def _build_row_by_headers(hr, dm):
     ch = [_norm_header(h) for h in hr]
     nr = [""] * len(hr)
     for i, cn in enumerate(ch):
-        # ★ 정확 일치 우선 (부분 포함 방지 — 예: '담당자'가 '고객담당자'에 잘못 매핑되는 버그 수정)
+        # ★ 정확 일치 우선 — 부분포함 금지 ('담당자' in '고객담당자' 버그 방지)
         if cn in dm:
             nr[i] = str(dm[cn])
-        else:
-            # fallback: 부분 포함 (고객명, 신규접수일 등 구글시트 변형 대비)
-            for k, v in dm.items():
-                if k in cn:
-                    nr[i] = str(v)
-                    break
     return nr
 
 
