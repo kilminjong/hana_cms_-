@@ -225,7 +225,7 @@ div.stButton > button[kind="secondary"]:hover {
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 16px;
     padding: 44px 36px;
-    min-height: 460px;
+    min-height: 540px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -271,11 +271,19 @@ div.stButton > button[kind="secondary"]:hover {
     background: #ffffff !important;
     border-radius: 16px !important;
     padding: 40px 36px 32px !important;
-    min-height: 460px !important;
+    min-height: 540px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
 }
 [data-testid="stHorizontalBlock"] > div:nth-child(2) {
     background: #ffffff !important;
     border-radius: 16px !important;
+    min-height: 540px !important;
+}
+/* 좌우 컬럼 동일 높이 */
+[data-testid="stHorizontalBlock"] {
+    align-items: stretch !important;
 }
 </style>""", unsafe_allow_html=True)
 
