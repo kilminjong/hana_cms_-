@@ -100,8 +100,16 @@ div.stButton > button[kind="secondary"]:hover {
   color: #008485 !important;
 }
 
-/* ── 폼 배경 ── */
-[data-testid="stForm"] {
+/* ── 폼 배경 (로그인 페이지 제외) ── */
+.page-dashboard [data-testid="stForm"],
+.page-customer [data-testid="stForm"],
+.page-alerts [data-testid="stForm"],
+.page-mydash [data-testid="stForm"],
+.page-bms [data-testid="stForm"],
+.page-report [data-testid="stForm"],
+.page-loganalysis [data-testid="stForm"],
+.page-system_log [data-testid="stForm"],
+.page-user_mgmt [data-testid="stForm"] {
   background: #ffffff !important;
   border: 1px solid #e2e6ea !important;
   border-radius: var(--radius-md) !important;
@@ -292,17 +300,7 @@ CSS_PAGES = {
   border-radius: 10px; padding: 48px; text-align: center;
 }
 </style>""",
-    "login": """<style>
-.page-login [data-testid="stForm"] {
-  background: #ffffff !important;
-  border: 1px solid #e2e6ea !important;
-  border-radius: 14px !important;
-  padding: 44px 36px 32px !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
-  max-width: 420px !important;
-  margin: 0 auto !important;
-}
-</style>"""
+    "login": ""
 }
 
 

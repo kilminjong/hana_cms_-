@@ -136,9 +136,12 @@ html, body, .stApp,
     margin: 0 auto !important;
 }
 
-/* stForm 테두리/배경 제거 — 카드는 직접 HTML로 */
-[data-testid="stForm"] {
+/* stForm 완전 투명 — html body 상위 선택자로 최고 우선순위 확보 */
+html body [data-testid="stForm"],
+html body div [data-testid="stForm"],
+html body section [data-testid="stForm"] {
     background: transparent !important;
+    background-color: transparent !important;
     border: none !important;
     padding: 0 !important;
     box-shadow: none !important;
