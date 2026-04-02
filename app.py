@@ -264,14 +264,18 @@ div.stButton > button[kind="secondary"]:hover {
 </div>
 """, unsafe_allow_html=True)
 
-    # ── 오른쪽: 로그인/회원가입 폼 ──
-    # CSS로 right_col에 흰 카드 배경 적용 (div 열고 닫기 방식 사용 안 함)
+    # ── 오른쪽: 흰 카드 배경을 CSS로 컬럼에 직접 적용 ──
     st.markdown("""<style>
-[data-testid="column"]:nth-of-type(2) > div:first-child {
-    background: #ffffff;
-    border-radius: 16px;
+/* 오른쪽 컬럼(2번째) 전체에 흰 카드 스타일 */
+[data-testid="stHorizontalBlock"] > div:nth-child(2) > div[data-testid="stVerticalBlock"] {
+    background: #ffffff !important;
+    border-radius: 16px !important;
     padding: 40px 36px 32px !important;
-    min-height: 460px;
+    min-height: 460px !important;
+}
+[data-testid="stHorizontalBlock"] > div:nth-child(2) {
+    background: #ffffff !important;
+    border-radius: 16px !important;
 }
 </style>""", unsafe_allow_html=True)
 
