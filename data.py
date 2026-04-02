@@ -222,10 +222,28 @@ def load_data_from_sheet():
         data = av[DATA_HEADER_ROW:]
         ch = []
         seen = {}
-        for h in headers:
+        def _norm_col(h):
             h = str(h).strip()
-            if h == "고객사명":
-                h = "고객명"
+            # 고객사명 → 고객명
+            if h == "고객사명": h = "고객명"
+            # 슬래시 포함 날짜 컬럼
+            if "개설" in h and "이행" in h:  h = "개설이행일"
+            # 괄호/특수문자 포함 컬럼
+            if "서버" in h and ("위치" in h or "pc" in h.lower()): h = "서버위치"
+            if "스케줄" in h and "사용" in h:  h = "스케줄사용여부"
+            # ERP 관련
+            if h in ("ERP DB", "ERP_DB", "ERP/DB", "ERPDBS"): h = "ERPDB"
+            if h in ("ERP 회사", "ERP_회사", "ERP회사명"): h = "ERP회사"
+            if h in ("ERP 종류", "ERP_종류", "ERP종류명"): h = "ERP종류"
+            if "연계방식" in h and h != "연계방식": h = "연계방식"
+            # 담당자 관련
+            if h in ("고객사담당자", "고객사 담당자", "고객 담당자"): h = "고객담당자"
+            if h in ("담당 부서", "담당_부서", "부서명"): h = "담당부서"
+            if h in ("담당 연락처", "담당_연락처", "연락처"): h = "담당연락처"
+            return h
+
+        for h in headers:
+            h = _norm_col(h)
             if not h:
                 h = f"Empty_{len(ch)}"
             if h in seen:
@@ -390,8 +408,25 @@ def get_memos_by_customer(cno):
 # 구글시트 동기화 (추가/수정/삭제)
 # ══════════════════════════════════════════════════
 
+def _norm_header(h):
+    h = str(h).strip()
+    # 슬래시 포함 날짜 컬럼
+    if "개설" in h and "이행" in h:  h = "개설이행일"
+    # 괄호/특수문자 포함 컬럼
+    if "서버" in h and ("위치" in h or "pc" in h.lower()): h = "서버위치"
+    if "스케줄" in h and "사용" in h:  h = "스케줄사용여부"
+    # ERP 관련
+    if h.replace(" ","") in ("ERPDB", "ERP_DB", "ERP/DB"): h = "ERPDB"
+    if "ERP" in h and "회사" in h: h = "ERP회사"
+    if "ERP" in h and "종류" in h: h = "ERP종류"
+    # 담당자 관련
+    if "고객" in h and "담당" in h and "연락" not in h: h = "고객담당자"
+    if "담당" in h and "부서" in h: h = "담당부서"
+    if "담당" in h and "연락" in h: h = "담당연락처"
+    return h.replace(" ", "")
+
 def _build_row_by_headers(hr, dm):
-    ch = [str(h).strip().replace(" ", "") for h in hr]
+    ch = [_norm_header(h) for h in hr]
     nr = [""] * len(hr)
     for i, cn in enumerate(ch):
         val = ""
@@ -413,7 +448,7 @@ def _sync_gsheet_update_bg(mode, dm):
         return
     try:
         headers = sheet.row_values(DATA_HEADER_ROW)
-        ch = [str(h).strip().replace(" ", "") for h in headers]
+        ch = [_norm_header(h) for h in headers]
         di = 1
         ci = (ch.index("고객번호") + 1) if "고객번호" in ch else None
         bi = (ch.index("사업자번호") + 1) if "사업자번호" in ch else None
