@@ -1,37 +1,65 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
 
+# ──────────────────────────────────────────────────
+# 디자인 토큰
+# ──────────────────────────────────────────────────
 CSS_VARIABLES = """<style>
 :root {
-  --primary:#008485; --primary-light:#e0f2f2; --primary-dark:#006a6b;
-  --accent:#E90061;
-  --bg-app:#f0f2f5; --bg-card:#ffffff; --bg-muted:#f7f8fa; --bg-section:#f4f6f9;
-  --border-light:#e2e6ea; --border-medium:#c4cdd5; --border-input:#c1c9d2;
-  --text-primary:#1a1a2e; --text-secondary:#4a5568; --text-muted:#8c95a6;
-  --text-sidebar:#dce4f0;
-  --color-success:#0d9f6e; --color-warning:#e67e22; --color-danger:#dc3545;
-  --sp-xs:4px; --sp-sm:8px; --sp-md:16px; --sp-lg:24px; --sp-xl:32px; --sp-2xl:48px;
-  --radius-sm:6px; --radius-md:10px; --radius-lg:14px;
-  --shadow-sm:0 1px 3px rgba(0,0,0,0.06); --shadow-md:0 2px 8px rgba(0,0,0,0.08);
-  --shadow-lg:0 8px 24px rgba(0,0,0,0.12); --shadow-card:0 1px 4px rgba(0,0,0,0.06);
-  --font-main:'Pretendard',-apple-system,'Malgun Gothic',sans-serif;
+  /* 브랜드 */
+  --primary: #008485;
+  --primary-hover: #006a6b;
+  --primary-light: #e0f7f7;
+
+  /* 사이드바 */
+  --sidebar-bg: #0f1923;
+  --sidebar-hover: rgba(255,255,255,0.06);
+  --sidebar-active-bg: rgba(0,132,133,0.18);
+  --sidebar-active-border: #008485;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #e2e8f0;
+
+  /* 콘텐츠 배경 */
+  --bg-page: #f4f6f8;
+  --bg-card: #ffffff;
+  --bg-muted: #f8fafc;
+
+  /* 텍스트 */
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+
+  /* 보더 */
+  --border: #e5e7eb;
+  --border-focus: #008485;
+
+  /* 상태 */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+
+  /* 그림자 */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+
+  /* 반경 */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --font: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
 }
 </style>"""
 
 CSS_GLOBAL = """<style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
-/* ── 라이트모드 강제 ── */
-html, body, .stApp, [data-testid="stAppViewContainer"],
-[data-testid="stMain"], .main {
-  color: #1a1a2e !important;
+html, body, [class*="css"] {
+  font-family: var(--font) !important;
   color-scheme: light !important;
 }
-.block-container {
-  color: #1a1a2e !important;
-}
-
-html, body, [class*="css"] { font-family: var(--font-main) !important; }
 
 /* ── UI 숨김 ── */
 #MainMenu { visibility: hidden !important; }
@@ -40,234 +68,292 @@ html, body, [class*="css"] { font-family: var(--font-main) !important; }
 [data-testid="stSidebarNav"] { display: none !important; }
 section[data-testid="stSidebarNav"] { display: none !important; }
 footer { visibility: hidden !important; }
+[data-testid="stHeader"] { background: transparent !important; }
+
+/* ── 메인 콘텐츠 여백 ── */
+.block-container {
+  padding-top: 2rem !important;
+  padding-bottom: 2rem !important;
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
+  max-width: 1200px !important;
+}
 
 /* ── 사이드바 ── */
 [data-testid="stSidebar"] {
-  background: linear-gradient(180deg, #1a2332 0%, #141c28 100%) !important;
-  border-right: none !important;
+  background: var(--sidebar-bg) !important;
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
 }
-[data-testid="stSidebar"] * { color: var(--text-sidebar) !important; }
-[data-testid="stSidebar"] hr { border-color: rgba(255,255,255,0.07) !important; }
+[data-testid="stSidebar"] > div:first-child {
+  padding-top: 0 !important;
+}
+[data-testid="stSidebar"] hr {
+  border-color: rgba(255,255,255,0.07) !important;
+  margin: 8px 0 !important;
+}
 
+/* 사이드바 메뉴 버튼 */
 [data-testid="stSidebar"] .stButton > button {
   text-align: left !important;
   justify-content: flex-start !important;
   border-radius: var(--radius-sm) !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
-  background: rgba(255,255,255,0.03) !important;
-  color: #94a3b8 !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--sidebar-text) !important;
   font-weight: 500 !important;
-  font-size: 13.5px !important;
-  padding: 10px 16px !important;
-  transition: all .18s ease !important;
-  margin-bottom: 4px !important;
+  font-size: 13px !important;
+  padding: 9px 14px !important;
+  transition: all .15s ease !important;
+  margin-bottom: 2px !important;
   width: 100% !important;
+  letter-spacing: 0 !important;
 }
 [data-testid="stSidebar"] .stButton > button:hover {
-  background: rgba(255,255,255,0.07) !important;
-  color: #e2e8f0 !important;
+  background: var(--sidebar-hover) !important;
+  color: var(--sidebar-text-active) !important;
 }
 [data-testid="stSidebar"] .stButton > button[kind="primary"] {
-  background: rgba(0,132,133,0.2) !important;
+  background: var(--sidebar-active-bg) !important;
   color: #4dd8d9 !important;
-  border: 1px solid rgba(0,132,133,0.4) !important;
-  border-left: 3px solid #008485 !important;
-  font-weight: 700 !important;
-  padding-left: 13px !important;
+  border-left: 2px solid var(--sidebar-active-border) !important;
+  font-weight: 600 !important;
+  padding-left: 12px !important;
 }
 
 /* ── 메인 버튼 ── */
 div.stButton > button {
-  border-radius: var(--radius-sm) !important;
-  font-weight: 600 !important;
-  font-size: 14px !important;
-  transition: all .18s ease !important;
-  background-color: #ffffff !important;
-  color: #1a1a2e !important;
-  border: 1px solid #e2e6ea !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 500 !important;
+  font-size: 13.5px !important;
+  transition: all .15s ease !important;
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+  height: 38px !important;
 }
 div.stButton > button[kind="primary"] {
-  background-color: #008485 !important;
-  border-color: #008485 !important;
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
   color: #ffffff !important;
 }
 div.stButton > button[kind="primary"]:hover {
-  background-color: #006a6b !important;
-  border-color: #006a6b !important;
+  background: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
 }
-div.stButton > button[kind="secondary"]:hover {
-  border-color: #008485 !important;
-  color: #008485 !important;
+div.stButton > button:not([kind="primary"]):hover {
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
 }
 
-/* ── 폼 배경 ── */
+/* ── 폼 ── */
 [data-testid="stForm"] {
-  background: #ffffff !important;
-  border: 1px solid #e2e6ea !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 20px !important;
+}
+
+/* ── 입력 필드 ── */
+.stTextInput > div > div {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
   border-radius: var(--radius-md) !important;
-  padding: 24px !important;
+  overflow: hidden !important;
+  transition: border-color .15s !important;
+}
+.stTextInput > div > div > input {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-size: 13.5px !important;
+  padding: 9px 12px !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+.stTextInput > div > div:focus-within {
+  border-color: var(--border-focus) !important;
+  box-shadow: 0 0 0 2px rgba(0,132,133,0.12) !important;
+}
+.stTextInput > div > div > input::placeholder {
+  color: var(--text-muted) !important;
+  -webkit-text-fill-color: var(--text-muted) !important;
+}
+.stTextInput > label, .stSelectbox > label,
+.stMultiSelect > label, .stDateInput > label, .stTextArea > label {
+  font-weight: 500 !important;
+  font-size: 12.5px !important;
+  color: var(--text-secondary) !important;
+  margin-bottom: 4px !important;
+}
+.stTextInput > div > div > button {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-muted) !important;
+}
+.stSelectbox > div > div {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--bg-card) !important;
+  font-size: 13.5px !important;
+  color: var(--text-primary) !important;
+}
+.stMultiSelect > div > div {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--bg-card) !important;
+}
+.stTextArea > div > div > textarea {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  font-size: 13.5px !important;
+}
+.stTextArea > div > div > textarea:focus {
+  border-color: var(--border-focus) !important;
+  box-shadow: 0 0 0 2px rgba(0,132,133,0.12) !important;
 }
 
 /* ── 탭 ── */
 .stTabs [data-baseweb="tab-list"] {
-  gap: 2px !important;
-  background: #ffffff !important;
+  gap: 0 !important;
+  background: var(--bg-card) !important;
   border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
-  padding: 4px !important;
-  border: 1px solid #e2e6ea !important;
-  border-bottom: none !important;
+  padding: 0 !important;
+  border-bottom: 2px solid var(--border) !important;
 }
 .stTabs [data-baseweb="tab"] {
-  border-radius: var(--radius-sm) !important;
-  font-weight: 600 !important;
-  font-size: 13.5px !important;
-  padding: 9px 18px !important;
-  color: #4a5568 !important;
+  border-radius: 0 !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  padding: 10px 20px !important;
+  color: var(--text-secondary) !important;
   background: transparent !important;
+  border-bottom: 2px solid transparent !important;
+  margin-bottom: -2px !important;
 }
 .stTabs [aria-selected="true"] {
-  background: #008485 !important;
-  color: #ffffff !important;
+  color: var(--primary) !important;
+  border-bottom: 2px solid var(--primary) !important;
+  font-weight: 600 !important;
+  background: transparent !important;
 }
 
-/* ── 입력 필드 ── */
-.stTextInput > div > div > input {
-  border: 1.5px solid #c1c9d2 !important;
-  border-radius: var(--radius-sm) !important;
-  padding: 10px 14px !important;
-  font-size: 14px !important;
-  background: #ffffff !important;
-  color: #1a1a2e !important;
-  -webkit-text-fill-color: #1a1a2e !important;
-  height: 44px !important;
-  box-sizing: border-box !important;
-}
-/* 비밀번호 눈 아이콘 포함 wrapper */
-.stTextInput > div > div {
-  background: #ffffff !important;
-  border: 1.5px solid #c1c9d2 !important;
-  border-radius: var(--radius-sm) !important;
+/* ── 데이터프레임 ── */
+[data-testid="stDataFrame"] {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
   overflow: hidden !important;
 }
-.stTextInput > div > div > input {
-  border: none !important;
-  box-shadow: none !important;
-}
-.stTextInput > div > div:focus-within {
-  border-color: #008485 !important;
-  box-shadow: 0 0 0 3px rgba(0,132,133,0.1) !important;
-}
-/* 눈 아이콘 버튼 */
-.stTextInput > div > div > button {
-  background: transparent !important;
-  border: none !important;
-  color: #8c95a6 !important;
-  padding: 0 10px !important;
+
+/* ── 섹션 구분선 ── */
+.crm-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 20px 0;
 }
 
-.stTextInput > div > div > input::placeholder {
-  color: #8c95a6 !important;
-  -webkit-text-fill-color: #8c95a6 !important;
+/* ── 페이지 제목 ── */
+.crm-page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.02em;
 }
-.stTextInput > label, .stSelectbox > label,
-.stMultiSelect > label, .stDateInput > label, .stTextArea > label {
-  font-weight: 600 !important;
-  font-size: 13px !important;
-  color: #4a5568 !important;
+.crm-page-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 24px 0;
 }
-.stSelectbox > div > div, .stMultiSelect > div > div {
-  border: 1.5px solid #c1c9d2 !important;
-  border-radius: var(--radius-sm) !important;
-  background: #ffffff !important;
-  color: #1a1a2e !important;
+
+/* ── 카드 ── */
+.crm-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-card);
 }
-.stTextArea > div > div > textarea {
-  border: 1.5px solid #c1c9d2 !important;
-  border-radius: var(--radius-sm) !important;
-  background: #ffffff !important;
-  color: #1a1a2e !important;
+
+/* ── KPI 카드 ── */
+.crm-kpi {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-card);
 }
-.stTextArea > div > div > textarea:focus {
-  border-color: #008485 !important;
-  box-shadow: 0 0 0 3px rgba(0,132,133,0.1) !important;
+.crm-kpi-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.crm-kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.crm-kpi-unit {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 4px;
 }
 
 /* ── 섹션 타이틀 ── */
 .crm-section-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin: 32px 0 16px 0;
-  padding: 9px 16px;
-  background: #f4f6f9;
-  border-left: 3px solid #008485;
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 24px 0 12px 0;
+  padding: 0;
+  border: none;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 /* ── 페이지 헤더 ── */
 .crm-page-header {
-  background: #ffffff;
-  padding: 18px 24px;
-  border-radius: var(--radius-md);
-  border: 1px solid #e2e6ea;
-  margin-bottom: 20px;
-  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
 }
 .crm-page-header h1 {
-  font-size: 20px;
-  font-weight: 800;
-  color: #1a1a2e;
-  margin: 0 0 3px 0;
-}
-.crm-page-header p { font-size: 13px; color: #8c95a6; margin: 0; }
-
-/* ── KPI 카드 ── */
-.crm-kpi {
-  background: #ffffff;
-  border-radius: var(--radius-md);
-  padding: 18px 22px;
-  border: 1px solid #e2e6ea;
-  box-shadow: var(--shadow-card);
-  position: relative;
-  overflow: hidden;
-}
-.crm-kpi::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: #008485;
-}
-.crm-kpi-label {
-  font-size: 11px;
-  color: #8c95a6;
-  margin-bottom: 8px;
+  font-size: 22px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: var(--text-primary);
+  margin: 0 0 2px 0;
+  letter-spacing: -0.02em;
 }
-.crm-kpi-value { font-size: 26px; font-weight: 800; color: #1a1a2e; line-height: 1.1; }
-.crm-kpi-unit { font-size: 13px; font-weight: 500; color: #8c95a6; margin-left: 3px; }
-.crm-kpi--accent::before { background: #E90061; }
-.crm-kpi--success::before { background: #0d9f6e; }
-.crm-kpi--warning::before { background: #e67e22; }
+.crm-page-header p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
 
-/* ── 데이터프레임 ── */
-[data-testid="stDataFrame"] {
-  border: 1px solid #e2e6ea !important;
-  border-radius: var(--radius-md) !important;
-  overflow: hidden !important;
+/* ── 뱃지 ── */
+.crm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
 }
-[data-testid="stDataFrame"] td,
-[data-testid="stDataFrame"] th { color: #1a1a2e !important; }
 
 /* ── 인쇄 ── */
 @media print {
   [data-testid="stSidebar"], [data-testid="stHeader"],
   .stButton, .no-print { display: none !important; }
   .stApp, .block-container {
-    background: white !important; margin: 0 !important;
-    padding: 0 !important; max-width: 100% !important;
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
   }
 }
 </style>"""
@@ -275,33 +361,36 @@ div.stButton > button[kind="secondary"]:hover {
 CSS_PAGES = {
     "customer": """<style>
 .page-customer .memo-item {
-  background: #ffffff; padding: 14px 18px; margin-bottom: 8px;
-  border-radius: 10px; border: 1px solid #e2e6ea; border-left: 3px solid #008485;
+  background: var(--bg-card);
+  padding: 14px 18px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
 }
 </style>""",
     "report": """<style>
 .page-report .report-wrap {
-  background: #ffffff; padding: 40px; border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  background: var(--bg-card);
+  padding: 40px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
-@media print { .page-report .report-wrap { box-shadow: none; padding: 0; } }
+@media print {
+  .page-report .report-wrap { box-shadow: none; padding: 0; }
+}
 </style>""",
     "bms": """<style>
 .page-bms .upload-zone {
-  background: #ffffff; border: 2px dashed #c4cdd5;
-  border-radius: 10px; padding: 48px; text-align: center;
+  background: var(--bg-card);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 48px;
+  text-align: center;
 }
 </style>""",
     "login": """<style>
-.page-login [data-testid="stForm"] {
-  background: #ffffff !important;
-  border: 1px solid #e2e6ea !important;
-  border-radius: 14px !important;
-  padding: 44px 36px 32px !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
-  max-width: 420px !important;
-  margin: 0 auto !important;
-}
+.page-login { }
 </style>"""
 }
 
@@ -327,9 +416,8 @@ def page_wrapper_close():
 
 def render_kpi(label, value, unit="건", color=None, variant=""):
     cs = f'color:{color};' if color else ''
-    vc = f' crm-kpi--{variant}' if variant else ''
     return (
-        f'<div class="crm-kpi{vc}">'
+        f'<div class="crm-kpi">'
         f'<div class="crm-kpi-label">{label}</div>'
         f'<div class="crm-kpi-value" style="{cs}">{value}'
         f'<span class="crm-kpi-unit">{unit}</span></div>'
@@ -339,8 +427,14 @@ def render_kpi(label, value, unit="건", color=None, variant=""):
 
 def render_page_header(title, desc=""):
     d = f'<p>{desc}</p>' if desc else ''
-    st.markdown(f'<div class="crm-page-header"><h1>{title}</h1>{d}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="crm-page-header"><h1>{title}</h1>{d}</div>',
+        unsafe_allow_html=True
+    )
 
 
 def render_section_title(text):
-    st.markdown(f'<div class="crm-section-title">{text}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="crm-section-title">{text}</div>',
+        unsafe_allow_html=True
+    )
