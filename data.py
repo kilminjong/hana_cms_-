@@ -224,16 +224,16 @@ def load_data_from_sheet():
         seen = {}
         def _norm_col(h):
             h = str(h).strip()
-            if h == "고객사명":                             return "고객명"
-            if "개설" in h and "이행" in h:                return "개설이행일"
+            if h == "고객사명":                                  return "고객명"
+            if "개설" in h and "이행" in h:                     return "개설이행일"
             if "서버" in h and ("위치" in h or "pc" in h.lower()): return "서버위치"
-            if "스케줄" in h and "사용" in h:              return "스케줄사용여부"
+            if "스케줄" in h and "사용" in h:                   return "스케줄사용여부"
             if h.replace(" ","") in ("ERPDB","ERP_DB","ERP/DB"): return "ERPDB"
-            if "ERP" in h and "회사" in h:                 return "ERP회사"
-            if "ERP" in h and "종류" in h:                 return "ERP종류"
-            if "고객" in h and "담당" in h and "연락" not in h: return "고객담당자"
-            if "담당" in h and "부서" in h:                return "담당부서"
-            if "담당" in h and "연락" in h:                return "담당연락처"
+            if "ERP" in h and "회사" in h:                      return "ERP회사"
+            if "ERP" in h and "종류" in h:                      return "ERP종류"
+            if "고객" in h and "담당" in h and "연락" not in h:  return "고객담당자"
+            if "담당" in h and "부서" in h:                     return "담당부서"
+            if "담당" in h and "연락" in h:                     return "담당연락처"
             return h
 
         for h in headers:
@@ -403,26 +403,23 @@ def get_memos_by_customer(cno):
 # ══════════════════════════════════════════════════
 
 def _norm_header(h):
-    """구글시트 헤더 → 프로그램 키 정규화"""
     h = str(h).strip()
-    if "개설" in h and "이행" in h:                return "개설이행일"
+    if "개설" in h and "이행" in h:                     return "개설이행일"
     if "서버" in h and ("위치" in h or "pc" in h.lower()): return "서버위치"
-    if "스케줄" in h and "사용" in h:              return "스케줄사용여부"
+    if "스케줄" in h and "사용" in h:                   return "스케줄사용여부"
     if h.replace(" ","") in ("ERPDB","ERP_DB","ERP/DB"): return "ERPDB"
-    if "ERP" in h and "회사" in h:                 return "ERP회사"
-    if "ERP" in h and "종류" in h:                 return "ERP종류"
-    if "고객" in h and "담당" in h and "연락" not in h: return "고객담당자"
-    if "담당" in h and "부서" in h:                return "담당부서"
-    if "담당" in h and "연락" in h:                return "담당연락처"
+    if "ERP" in h and "회사" in h:                      return "ERP회사"
+    if "ERP" in h and "종류" in h:                      return "ERP종류"
+    if "고객" in h and "담당" in h and "연락" not in h:  return "고객담당자"
+    if "담당" in h and "부서" in h:                     return "담당부서"
+    if "담당" in h and "연락" in h:                     return "담당연락처"
     return h.replace(" ", "")
 
 
 def _build_row_by_headers(hr, dm):
-    """헤더 순서대로 dm 값을 채워 반환 — 정확 일치 우선"""
     ch = [_norm_header(h) for h in hr]
     nr = [""] * len(hr)
     for i, cn in enumerate(ch):
-        # ★ 정확 일치 우선 — 부분포함 금지 ('담당자' in '고객담당자' 버그 방지)
         if cn in dm:
             nr[i] = str(dm[cn])
     return nr
@@ -532,7 +529,12 @@ def update_fast(cno, um):
             if k in df.columns:
                 df.loc[mask, k] = str(v)
         st.session_state["local_df"] = df
-        run_in_background(_sync_gsheet_update_bg, "update", um)
+        # 백그라운드로 구글시트 업데이트 + 결과 세션에 기록
+        def _sync_and_flag(um_data):
+            _sync_gsheet_update_bg("update", um_data)
+            st.session_state['_last_sync_done'] = True
+        run_in_background(_sync_and_flag, um)
+        st.session_state['_last_sync_done'] = False
         log_action(user, "Update", f"수정: {um.get('고객명')}")
         return True, "수정 완료"
     return False, "대상 없음"
